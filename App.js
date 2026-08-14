@@ -15,6 +15,7 @@ export default function App() {
       </View>
       <View style={styles.cardSecondary}>
         <Text style={styles.cardTitle}>Color secundario</Text>
+        <Text style={styles.cardTitle}>Dani y Leo son mis mujeres</Text>
       </View>
       <StatusBar style="auto" />
     </View>
