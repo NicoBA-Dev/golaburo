@@ -265,17 +265,19 @@ const styles = StyleSheet.create({
 
 ### Paleta de colores (`theme/colors.js`)
 
+**Nota del equipo:** El branding principal de GoLaburo gira en torno al color verde para transmitir seguridad, profesionalismo y enfoque en servicios del hogar.
+
 | Variable | Color | Para qué |
 |---|---|---|
-| `colors.primary` | #2F5496 (azul) | Botones principales, headers, elementos de marca |
-| `colors.secondary` | #ED7D31 (naranja) | Botones secundarios, acentos |
-| `colors.background` | #F7F7F7 (gris claro) | Fondo general de pantallas |
-| `colors.surface` | #FFFFFF (blanco) | Cards, modales, inputs |
-| `colors.textMain` | #1A1A1A (casi negro) | Texto principal |
-| `colors.textMuted` | #6B6B6B (gris) | Texto secundario, subtítulos |
-| `colors.border` | #E0E0E0 (gris claro) | Bordes de inputs y cards |
-| `colors.success` | #2E7D32 (verde) | Estados completados, éxito |
-| `colors.error` | #C62828 (rojo) | Errores, validaciones |
+| `colors.primary` | #2E7D32 (verde marca) | Logos, Títulos principales, Estrellas, Botones primarios |
+| `colors.secondary` | #ED7D31 (naranja) | Botones secundarios, acentos o alertas |
+| `colors.background` | #F7F7F7 (gris claro) | Fondo general de todas las pantallas |
+| `colors.surface` | #FFFFFF (blanco) | Cards de técnicos, modales, inputs |
+| `colors.textMain` | #1A1A1A (casi negro) | Texto de párrafos, subtítulos (mejor legibilidad) |
+| `colors.textMuted` | #6B6B6B (gris) | Texto secundario, estados de carga, copyright |
+| `colors.border` | #E0E0E0 (gris claro) | Bordes de inputs y divisiones |
+| `colors.success` | #2E7D32 (verde) | Estados completados, éxito (mismo de la marca) |
+| `colors.error` | #C62828 (rojo) | Errores, validaciones de formularios |
 | `colors.warning` | #F9A825 (amarillo) | Advertencias |
 
 **Para cambiar los colores de toda la app:** editar solo `theme/colors.js`.
