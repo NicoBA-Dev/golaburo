@@ -90,7 +90,8 @@ const styles = StyleSheet.create({
     mainIcon: {
         width: 170,
         height: 170,
-        
+        tintColor: colors.primary,
+
         // tintColor eliminado para no sobreescribir los colores de tu imagen original
     },
     title: {
