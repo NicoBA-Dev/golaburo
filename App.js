@@ -19,3 +19,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background, // Mantiene el fondo general de la app
   },
 });
+
+//Version navegador
+
+//import React from 'react';
+//import { StatusBar } from 'expo-status-bar';
+//import AppNavigator from './navigation/AppNavigator';
+//
+//export default function App() {
+//  return (
+//    <>
+//      <AppNavigator />
+//      <StatusBar style="auto" />
+//    </>
+//  );
+//}
