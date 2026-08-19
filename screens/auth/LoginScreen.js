@@ -14,8 +14,9 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     try {
       await authService.login(email, password);
+      // Aquí podrías redirigir al Home si el login es exitoso
     } catch (err) {
-      alert(err.message);
+      alert('Error de conexión. Verifica tus credenciales.');
     } finally {
       setLoading(false);
     }
@@ -34,7 +35,7 @@ export default function LoginScreen({ navigation }) {
           <InputField label="Correo electrónico" value={email} onChangeText={setEmail} placeholder="nombre@ejemplo.com" keyboardType="email-address" />
           <InputField label="Contraseña" value={password} onChangeText={setPassword} placeholder="••••••••" secureTextEntry />
 
-          <PrimaryButton title={loading ? 'Cargando...' : 'Iniciar sesión'} onPress={handleLogin} style={styles.btn} />
+          <PrimaryButton title={loading ? 'Conectando...' : 'Iniciar sesión'} onPress={handleLogin} style={styles.btn} />
 
           <TouchableOpacity style={styles.footerBanner} onPress={() => navigation.navigate('Register')}>
             <Text style={styles.bannerText}>¿Eres nuevo? <Text style={styles.boldText}>Regístrate aquí</Text></Text>
@@ -51,13 +52,19 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   scroll: { flexGrow: 1, justifyContent: 'space-between', padding: 24, alignItems: 'center' },
   header: { alignItems: 'center', marginTop: 10, width: '100%' },
-  logo: { width: 180, height: 45, marginBottom: 16, tintColor: colors.primary },
+  // En tus StyleSheet de Login y Register:
+  logo: {
+    width: 160,
+    height: 45,
+    marginBottom: 16,
+    tintColor: colors.primary // Vuelve el verde puro aquí también
+  },
   title: { fontSize: 26, fontWeight: 'bold', color: colors.primary, marginBottom: 6 },
-  subtitle: { fontSize: 14, color: colors.textSecondary || '#666', textAlign: 'center', paddingHorizontal: 10, marginBottom: 20 },
-  card: { backgroundColor: colors.cardBackground || '#FFF', borderRadius: 16, width: '100%', overflow: 'hidden', elevation: 3, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8 },
+  subtitle: { fontSize: 14, color: colors.textMuted, textAlign: 'center', paddingHorizontal: 10, marginBottom: 20 },
+  card: { backgroundColor: colors.surface, borderRadius: 16, width: '100%', overflow: 'hidden', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 },
   btn: { marginTop: 10, marginBottom: 15, marginHorizontal: 20, width: 'auto' },
-  footerBanner: { backgroundColor: colors.footerBg || '#E8F5E9', paddingVertical: 14, alignItems: 'center', borderTopWidth: 1, borderColor: '#F0F0F0' },
+  footerBanner: { backgroundColor: '#F8FAF8', paddingVertical: 14, alignItems: 'center', borderTopWidth: 1, borderColor: colors.border },
   bannerText: { fontSize: 14, color: colors.primary },
   boldText: { fontWeight: 'bold' },
-  copyright: { fontSize: 12, color: colors.textSecondary || '#666', marginTop: 20, marginBottom: 10 },
+  copyright: { fontSize: 12, color: colors.textMuted, marginTop: 20, marginBottom: 10 },
 });

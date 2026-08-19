@@ -17,8 +17,9 @@ export default function RegisterScreen({ navigation }) {
     try {
       await authService.register({ email, password, nombre, telefono });
       alert('Registro completado exitosamente');
+      navigation.navigate('Login');
     } catch (err) {
-      alert(err.message);
+      alert('Hubo un problema con el registro.');
     } finally {
       setLoading(false);
     }
@@ -26,7 +27,7 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Image source={require('../../assets/logo-small.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.title}>Crear cuenta</Text>
@@ -40,7 +41,7 @@ export default function RegisterScreen({ navigation }) {
           <InputField label="Número de teléfono" value={telefono} onChangeText={setTelefono} placeholder="+591 700 00000" keyboardType="phone-pad" />
 
           <PrimaryButton title={loading ? 'Registrando...' : 'Regístrate'} onPress={handleRegister} style={styles.btn} />
-          
+
           <Text style={styles.disclaimer}>Al registrarte, aceptas nuestros términos y condiciones.</Text>
 
           <TouchableOpacity style={styles.footerBanner} onPress={() => navigation.navigate('Login')}>
@@ -58,14 +59,19 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   scroll: { flexGrow: 1, justifyContent: 'space-between', padding: 24, alignItems: 'center' },
   header: { alignItems: 'center', marginTop: 10, width: '100%' },
-  logo: { width: 180, height: 45, marginBottom: 12, tintColor: colors.primary },
+  logo: {
+    width: 160,
+    height: 45,
+    marginBottom: 16,
+    tintColor: colors.primary
+  },
   title: { fontSize: 26, fontWeight: 'bold', color: colors.primary, marginBottom: 6 },
-  subtitle: { fontSize: 14, color: colors.textSecondary || '#666', textAlign: 'center', paddingHorizontal: 10, marginBottom: 16 },
-  card: { backgroundColor: colors.cardBackground || '#FFF', borderRadius: 16, width: '100%', overflow: 'hidden', elevation: 3, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8 },
+  subtitle: { fontSize: 14, color: colors.textMuted, textAlign: 'center', paddingHorizontal: 10, marginBottom: 16 },
+  card: { backgroundColor: colors.surface, borderRadius: 16, width: '100%', overflow: 'hidden', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 },
   btn: { marginTop: 8, marginBottom: 10, marginHorizontal: 20, width: 'auto' },
-  disclaimer: { fontSize: 11, color: colors.textSecondary || '#888', textAlign: 'center', paddingHorizontal: 20, marginBottom: 16 },
-  footerBanner: { backgroundColor: colors.footerBg || '#E8F5E9', paddingVertical: 14, alignItems: 'center', borderTopWidth: 1, borderColor: '#F0F0F0' },
+  disclaimer: { fontSize: 11, color: colors.textMuted, textAlign: 'center', paddingHorizontal: 20, marginBottom: 16 },
+  footerBanner: { backgroundColor: '#F8FAF8', paddingVertical: 14, alignItems: 'center', borderTopWidth: 1, borderColor: colors.border },
   bannerText: { fontSize: 14, color: colors.primary },
   boldText: { fontWeight: 'bold' },
-  copyright: { fontSize: 12, color: colors.textSecondary || '#666', marginTop: 16, marginBottom: 10 },
+  copyright: { fontSize: 12, color: colors.textMuted, marginTop: 16, marginBottom: 10 },
 });

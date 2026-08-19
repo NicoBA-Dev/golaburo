@@ -30,12 +30,14 @@ export const authService = {
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
     },
-    // Agrega esta función dentro del objeto authService en services/authService.js
 
+    // Función arreglada: ahora sí consulta a Supabase en lugar de devolver null
     async getCurrentSession() {
-        return new Promise((resolve) => {
-            // Retorna null para enviar directo al Login
-            resolve(null);
-        });
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+            console.error("Error obteniendo sesión:", error);
+            return null;
+        }
+        return data.session;
     },
 };
