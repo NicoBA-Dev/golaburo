@@ -114,13 +114,6 @@ export default function LoginScreen({ navigation }) {
                 error={errors.password}
               />
 
-              <TouchableOpacity
-                style={styles.forgotLink}
-                onPress={() => navigation.navigate('ForgotPassword')}
-              >
-                <Text style={styles.forgotLinkText}>¿Olvidaste tu contraseña?</Text>
-              </TouchableOpacity>
-
               <PrimaryButton
                 title={loading ? 'Conectando...' : 'Iniciar sesión'}
                 onPress={handleLogin}
@@ -201,13 +194,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.medium,
     textAlign: 'center',
   },
-  forgotLink: { alignSelf: 'flex-end', marginBottom: 18, marginTop: -2 },
-  forgotLinkText: {
-    fontSize: fontSize.sm,
-    color: colors.primary,
-    fontWeight: fontWeight.medium,
-  },
-  btn: { marginBottom: 20 },
+  btn: { marginTop: 8, marginBottom: 20 },
   footerBanner: {
     backgroundColor: colors.background,
     paddingVertical: 16,
