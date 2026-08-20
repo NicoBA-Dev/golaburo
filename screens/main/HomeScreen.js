@@ -23,30 +23,34 @@ export default function HomeScreen({ navigation }) {
                         title="Plomería"
                         description="Fugas, grifería, tuberías"
                         iconName="water-outline"
-                        onPress={() => navigation.navigate('ServiceDetails', { serviceTitle: 'Plomería' })}
+                        onPress={() => navigation.navigate('Buscar', { screen: 'ServiceDetails', params: { serviceTitle: 'Plomería' } })}
                     />
                     <CategoryCard
                         title="Electricidad"
                         description="Cortocircuitos, cableado"
                         iconName="flash-outline"
-                        onPress={() => navigation.navigate('ServiceDetails', { serviceTitle: 'Electricidad' })}
+                        onPress={() => navigation.navigate('Buscar', { screen: 'ServiceDetails', params: { serviceTitle: 'Electricidad' } })}
                     />
                     <CategoryCard
                         title="Cerrajería"
                         description="Aperturas, chapas, llaves"
                         iconName="key-outline"
-                        onPress={() => navigation.navigate('ServiceDetails', { serviceTitle: 'Cerrajería' })}
+                        onPress={() => navigation.navigate('Buscar', { screen: 'ServiceDetails', params: { serviceTitle: 'Cerrajería' } })}
                     />
                     <CategoryCard
                         title="Pintura"
                         description="Interiores, exteriores"
                         iconName="color-palette-outline"
-                        onPress={() => navigation.navigate('ServiceDetails', { serviceTitle: 'Pintura' })}
+                        onPress={() => navigation.navigate('Buscar', { screen: 'ServiceDetails', params: { serviceTitle: 'Pintura' } })}
                     />
                 </View>
 
                 {/* Banner Destacado: Reparación de Equipos */}
-                <TouchableOpacity style={styles.specialBanner} activeOpacity={0.8}>
+                <TouchableOpacity
+                    style={styles.specialBanner}
+                    activeOpacity={0.8}
+                    onPress={() => navigation.navigate('Buscar', { screen: 'ServiceDetails', params: { serviceTitle: 'Reparación de equipos' } })}
+                >
                     <View style={styles.specialIconBg}>
                         <Ionicons name="hardware-chip-outline" size={32} color={colors.primary} />
                     </View>
@@ -122,7 +126,7 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
     trustBadge: {
-        backgroundColor: colors.primary, // Fondo verde para transmitir seguridad
+        backgroundColor: colors.primary,
         flexDirection: 'row',
         alignItems: 'center',
         padding: 18,
@@ -135,12 +139,12 @@ const styles = StyleSheet.create({
     trustTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: colors.surface, // Texto blanco
+        color: colors.surface,
         marginBottom: 4,
     },
     trustDesc: {
         fontSize: 13,
-        color: 'rgba(255,255,255,0.85)', // Blanco ligeramente transparente
+        color: 'rgba(255,255,255,0.85)',
         lineHeight: 18,
     },
 });

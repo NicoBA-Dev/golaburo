@@ -6,11 +6,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { fontSize, fontWeight } from '../theme/typography';
 
+// Pantallas principales
 import HomeScreen from '../screens/main/HomeScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 
-// Mapa de íconos por pestaña (activo / inactivo). Vive fuera del
-// componente para no recrearse en cada render.
+// IMPORTANTE: El navegador anidado que contiene el buscador estilo Spotify y los detalles
+import SearchStackNavigator from './SearchStackNavigator';
+
+// Mapa de íconos por pestaña
 const TAB_ICONS = {
     Inicio: { active: 'home', inactive: 'home-outline' },
     Buscar: { active: 'search', inactive: 'search-outline' },
@@ -19,8 +22,7 @@ const TAB_ICONS = {
     Perfil: { active: 'person', inactive: 'person-outline' },
 };
 
-// Pantalla temporal, con mejor jerarquía visual, mientras se construyen
-// las secciones reales de la app.
+// Pantalla temporal para las secciones en construcción
 function PlaceholderScreen({ name, icon }) {
     return (
         <View style={placeholderStyles.container}>
@@ -45,20 +47,20 @@ const placeholderStyles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 36,
-        backgroundColor: colors.primarySoft,
+        backgroundColor: '#E8F5E9',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 16,
     },
     title: {
-        fontSize: fontSize.lg,
-        fontWeight: fontWeight.semibold,
+        fontSize: fontSize?.lg || 20,
+        fontWeight: fontWeight?.semibold || '600',
         color: colors.textMain,
         marginBottom: 6,
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: fontSize.sm,
+        fontSize: fontSize?.sm || 14,
         color: colors.textMuted,
         textAlign: 'center',
     },
@@ -68,7 +70,6 @@ const Tab = createBottomTabNavigator();
 
 export default function MainTabNavigator() {
     const insets = useSafeAreaInsets();
-    // Altura base + el "safe area" inferior (barra de gestos / home indicator)
     const tabBarHeight = 56 + (insets.bottom || (Platform.OS === 'ios' ? 20 : 0));
 
     return (
@@ -86,14 +87,14 @@ export default function MainTabNavigator() {
                     paddingBottom: Math.max(insets.bottom, 8),
                     paddingTop: 8,
                     elevation: 10,
-                    shadowColor: colors.shadow,
+                    shadowColor: '#000',
                     shadowOpacity: 0.05,
                     shadowRadius: 10,
                     shadowOffset: { width: 0, height: -2 },
                 },
                 tabBarLabelStyle: {
-                    fontSize: fontSize.xs,
-                    fontWeight: fontWeight.medium,
+                    fontSize: fontSize?.xs || 11,
+                    fontWeight: fontWeight?.medium || '500',
                     marginTop: -2,
                 },
                 tabBarIcon: ({ focused, color, size }) => {
@@ -105,17 +106,26 @@ export default function MainTabNavigator() {
         >
             <Tab.Screen name="Inicio" component={HomeScreen} />
 
-            <Tab.Screen name="Buscar">
-                {() => <PlaceholderScreen name="Buscar servicios" icon="search-outline" />}
-            </Tab.Screen>
+            {/* AQUÍ ESTÁ EL ENGANCHE ACTUALIZADO CON LISTENER QUE TE FALTABA */}
+            <Tab.Screen
+                name="Buscar"
+                component={SearchStackNavigator}
+                listeners={({ navigation }) => ({
+                    tabPress: (e) => {
+                        // 1. Evitamos el comportamiento por defecto (recordar el historial)
+                        e.preventDefault();
+
+                        // 2. Forzamos a la app a navegar siempre a la raíz del buscador (Explore)
+                        navigation.navigate('Buscar', { screen: 'Explore' });
+                    },
+                })}
+            />
 
             <Tab.Screen
                 name="Solicitudes"
                 options={{
-                    // Ejemplo de badge de notificaciones: reemplaza `undefined`
-                    // por un número (ej. tabBarBadge: 3) cuando tengas datos reales.
                     tabBarBadge: undefined,
-                    tabBarBadgeStyle: { backgroundColor: colors.secondary, fontSize: fontSize.xs },
+                    tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 11 },
                 }}
             >
                 {() => <PlaceholderScreen name="Mis solicitudes" icon="clipboard-outline" />}
@@ -125,7 +135,7 @@ export default function MainTabNavigator() {
                 name="Mensajes"
                 options={{
                     tabBarBadge: undefined,
-                    tabBarBadgeStyle: { backgroundColor: colors.secondary, fontSize: fontSize.xs },
+                    tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 11 },
                 }}
             >
                 {() => <PlaceholderScreen name="Mensajes" icon="chatbubble-outline" />}

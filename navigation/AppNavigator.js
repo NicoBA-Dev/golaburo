@@ -8,8 +8,6 @@ import BienvenidaScreen from '../screens/BienvenidaScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import MainTabNavigator from './MainTabNavigator';
-// Importamos la nueva pantalla
-import ServiceDetailsScreen from '../screens/main/ServiceDetailsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -67,10 +65,10 @@ export default function AppNavigator() {
         {!isReady ? (
           <Stack.Screen name="Splash" component={BienvenidaScreen} />
         ) : session ? (
-          /* USUARIO LOGUEADO: Agrupamos Main y ServiceDetails */
+          /* USUARIO LOGUEADO: Solo cargamos el MainTabNavigator. 
+             Las demás pantallas viven dentro de sus respectivas pestañas. */
           <Stack.Group>
             <Stack.Screen name="Main" component={MainTabNavigator} />
-            <Stack.Screen name="ServiceDetails" component={ServiceDetailsScreen} />
           </Stack.Group>
         ) : (
           /* SIN SESIÓN */
