@@ -7,7 +7,7 @@ import { colors } from '../../theme/colors';
 import HomeHeader from '../../components/home/HomeHeader';
 import CategoryCard from '../../components/home/CategoryCard';
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -23,21 +23,25 @@ export default function HomeScreen() {
                         title="Plomería"
                         description="Fugas, grifería, tuberías"
                         iconName="water-outline"
+                        onPress={() => navigation.navigate('ServiceDetails', { serviceTitle: 'Plomería' })}
                     />
                     <CategoryCard
                         title="Electricidad"
                         description="Cortocircuitos, cableado"
                         iconName="flash-outline"
+                        onPress={() => navigation.navigate('ServiceDetails', { serviceTitle: 'Electricidad' })}
                     />
                     <CategoryCard
                         title="Cerrajería"
                         description="Aperturas, chapas, llaves"
                         iconName="key-outline"
+                        onPress={() => navigation.navigate('ServiceDetails', { serviceTitle: 'Cerrajería' })}
                     />
                     <CategoryCard
                         title="Pintura"
                         description="Interiores, exteriores"
                         iconName="color-palette-outline"
+                        onPress={() => navigation.navigate('ServiceDetails', { serviceTitle: 'Pintura' })}
                     />
                 </View>
 
