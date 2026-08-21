@@ -10,19 +10,19 @@ import { fontSize, fontWeight } from '../theme/typography';
 import HomeScreen from '../screens/main/HomeScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 
-// IMPORTANTE: El navegador anidado que contiene el buscador estilo Spotify y los detalles
+// ENRUTADORES ANIDADOS (Stacks)
 import SearchStackNavigator from './SearchStackNavigator';
+import RequestsStackNavigator from './RequestsStackNavigator'; // IMPORTAMOS EL NUEVO STACK
 
 // Mapa de íconos por pestaña
 const TAB_ICONS = {
     Inicio: { active: 'home', inactive: 'home-outline' },
     Buscar: { active: 'search', inactive: 'search-outline' },
     Solicitudes: { active: 'clipboard', inactive: 'clipboard-outline' },
-    Mensajes: { active: 'chatbubble', inactive: 'chatbubble-outline' },
     Perfil: { active: 'person', inactive: 'person-outline' },
 };
 
-// Pantalla temporal para las secciones en construcción
+// Pantalla temporal para Mensajes
 function PlaceholderScreen({ name, icon }) {
     return (
         <View style={placeholderStyles.container}>
@@ -36,34 +36,10 @@ function PlaceholderScreen({ name, icon }) {
 }
 
 const placeholderStyles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: colors.background,
-        paddingHorizontal: 32,
-    },
-    iconCircle: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        backgroundColor: '#E8F5E9',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-    },
-    title: {
-        fontSize: fontSize?.lg || 20,
-        fontWeight: fontWeight?.semibold || '600',
-        color: colors.textMain,
-        marginBottom: 6,
-        textAlign: 'center',
-    },
-    subtitle: {
-        fontSize: fontSize?.sm || 14,
-        color: colors.textMuted,
-        textAlign: 'center',
-    },
+    container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, paddingHorizontal: 32 },
+    iconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+    title: { fontSize: fontSize?.lg || 20, fontWeight: fontWeight?.semibold || '600', color: colors.textMain, marginBottom: 6, textAlign: 'center' },
+    subtitle: { fontSize: fontSize?.sm || 14, color: colors.textMuted, textAlign: 'center' },
 });
 
 const Tab = createBottomTabNavigator();
@@ -80,23 +56,11 @@ export default function MainTabNavigator() {
                 tabBarInactiveTintColor: colors.textMuted,
                 tabBarHideOnKeyboard: true,
                 tabBarStyle: {
-                    backgroundColor: colors.surface,
-                    borderTopWidth: 1,
-                    borderTopColor: colors.border,
-                    height: tabBarHeight,
-                    paddingBottom: Math.max(insets.bottom, 8),
-                    paddingTop: 8,
-                    elevation: 10,
-                    shadowColor: '#000',
-                    shadowOpacity: 0.05,
-                    shadowRadius: 10,
-                    shadowOffset: { width: 0, height: -2 },
+                    backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border,
+                    height: tabBarHeight, paddingBottom: Math.max(insets.bottom, 8), paddingTop: 8,
+                    elevation: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: -2 },
                 },
-                tabBarLabelStyle: {
-                    fontSize: fontSize?.xs || 11,
-                    fontWeight: fontWeight?.medium || '500',
-                    marginTop: -2,
-                },
+                tabBarLabelStyle: { fontSize: fontSize?.xs || 11, fontWeight: fontWeight?.medium || '500', marginTop: -2 },
                 tabBarIcon: ({ focused, color, size }) => {
                     const icons = TAB_ICONS[route.name];
                     const iconName = focused ? icons?.active : icons?.inactive;
@@ -106,41 +70,26 @@ export default function MainTabNavigator() {
         >
             <Tab.Screen name="Inicio" component={HomeScreen} />
 
-            {/* AQUÍ ESTÁ EL ENGANCHE ACTUALIZADO CON LISTENER QUE TE FALTABA */}
             <Tab.Screen
                 name="Buscar"
                 component={SearchStackNavigator}
                 listeners={({ navigation }) => ({
                     tabPress: (e) => {
-                        // 1. Evitamos el comportamiento por defecto (recordar el historial)
                         e.preventDefault();
-
-                        // 2. Forzamos a la app a navegar siempre a la raíz del buscador (Explore)
                         navigation.navigate('Buscar', { screen: 'Explore' });
                     },
                 })}
             />
 
+            {/* EL STACK CONECTADO CORRECTAMENTE */}
             <Tab.Screen
                 name="Solicitudes"
+                component={RequestsStackNavigator}
                 options={{
                     tabBarBadge: undefined,
                     tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 11 },
                 }}
-            >
-                {() => <PlaceholderScreen name="Mis solicitudes" icon="clipboard-outline" />}
-            </Tab.Screen>
-
-            <Tab.Screen
-                name="Mensajes"
-                options={{
-                    tabBarBadge: undefined,
-                    tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 11 },
-                }}
-            >
-                {() => <PlaceholderScreen name="Mensajes" icon="chatbubble-outline" />}
-            </Tab.Screen>
-
+            />
             <Tab.Screen name="Perfil" component={ProfileScreen} />
         </Tab.Navigator>
     );

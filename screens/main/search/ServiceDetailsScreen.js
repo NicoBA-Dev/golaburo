@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
 import TechnicianCard from '../../../components/services/TechnicianCard';
 
-// DATOS FALSOS (MOCK) - Optimizados para Cochabamba
+// DATOS FALSOS (MOCK) - Optimizados para el mercado local
 const MOCK_TECHNICIANS = [
     { id: '1', name: 'Juan Pérez', verified: true, rating: 4.8, reviews: 10, description: 'Especialista en instalaciones técnicas y mantenimiento general del hogar.', zones: 'Cercado, Tiquipaya', price: '80' },
     { id: '2', name: 'Carlos Mamani', verified: true, rating: 4.9, reviews: 25, description: 'Instalaciones residenciales y comerciales. Rapidez y limpieza garantizada.', zones: 'Quillacollo, Sacaba', price: '75' },
@@ -60,7 +60,15 @@ export default function ServiceDetailsScreen({ route, navigation }) {
                             zones={item.zones}
                             price={item.price}
                             verified={item.verified}
-                            onPress={() => console.log(`Ver perfil de ${item.name}`)}
+                            // Acción 1: Ver Perfil
+                            onProfilePress={() => {
+                                console.log(`Ir al perfil de ${item.name}`);
+                                // navigation.navigate('TechnicianProfile', { technician: item });
+                            }}
+                            // Acción 2: Botón de Solicitar (Va al nuevo formulario)
+                            onRequestPress={() => {
+                                navigation.navigate('CreateRequest', { technician: item });
+                            }}
                         />
                     )}
                 />
