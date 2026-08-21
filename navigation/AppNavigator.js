@@ -3,19 +3,15 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { supabase } from '../config/supabaseConfig';
 
-// Pantallas
+// Pantallas y Navegadores
 import BienvenidaScreen from '../screens/BienvenidaScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
-import TecnicoSolicitudesScreen from '../screens/tecnico/TecnicoSolicitudesScreen';
-import TecnicoHistorialScreen from '../screens/tecnico/TecnicoHistorialScreen';
-import PerfilTecnicoScreen from '../screens/main/PerfilTecnicoScreen';
 import MainTabNavigator from './MainTabNavigator';
+import TecnicoTabNavigator from './TecnicoTabNavigator'; // Importamos el tab del técnico
 
 const Stack = createNativeStackNavigator();
 
-// Tiempo mínimo que se muestra el splash, para que la animación de
-// bienvenida no "parpadee" si Supabase responde muy rápido.
 const MIN_SPLASH_MS = 2500;
 
 export default function AppNavigator() {
@@ -23,8 +19,6 @@ export default function AppNavigator() {
   const [isReady, setIsReady] = useState(false);
   const [authError, setAuthError] = useState(null);
 
-  // Evita setState sobre un componente ya desmontado si el usuario
-  // navega/cierra la app durante la carga inicial.
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -39,7 +33,6 @@ export default function AppNavigator() {
       }, remaining);
     };
 
-    // 1. Verificamos si ya hay una sesión guardada al abrir la app
     supabase.auth
       .getSession()
       .then(({ data, error }) => {
@@ -55,7 +48,6 @@ export default function AppNavigator() {
       })
       .finally(finishLoading);
 
-    // 2. Nos quedamos "escuchando" por si el usuario inicia o cierra sesión
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
@@ -71,28 +63,26 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
-        {/* ESTADO 1: Cargando (Muestra el Splash Screen) */}
         {!isReady ? (
           <Stack.Screen name="Splash" component={BienvenidaScreen} />
-        ) : /* ESTADO 2: Usuario logueado (Muestra la app principal y la vista independiente del técnico) */
-          session ? (
-            <>
-              <Stack.Screen name="Main" component={MainTabNavigator} />
-              <Stack.Screen name="PerfilTecnicoStack" component={PerfilTecnicoScreen} />
-              <Stack.Screen name="TecnicoSolicitudesScreen" component={TecnicoSolicitudesScreen} />
-              <Stack.Screen name="TecnicoHistorialScreen" component={TecnicoHistorialScreen} />
-            </>
-          ) : (
-            /* ESTADO 3: Sin sesión (Muestra Login y Registro) */
-            <>
-              <Stack.Screen
-                name="Login"
-                component={LoginScreen}
-                initialParams={authError ? { sessionError: authError } : undefined}
-              />
-              <Stack.Screen name="Register" component={RegisterScreen} />
-            </>
-          )}
+        ) : session ? (
+          <>
+            {/* Flujo de Cliente */}
+            <Stack.Screen name="Main" component={MainTabNavigator} />
+
+            {/* Flujo de Técnico con su barra inferior de 3 íconos */}
+            <Stack.Screen name="TecnicoPanel" component={TecnicoTabNavigator} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              initialParams={authError ? { sessionError: authError } : undefined}
+            />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

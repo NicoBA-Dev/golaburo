@@ -76,7 +76,7 @@ export default function PerfilTecnicoScreen({ navigation }) {
 
   // Redirección directa a la pestaña de Perfil dentro del MainTabNavigator
   const handleReturnToUserProfile = () => {
-    navigation?.navigate('Main', { screen: 'Perfil' });
+    navigation?.navigate('Main');
   };
 
   return (
@@ -224,26 +224,7 @@ export default function PerfilTecnicoScreen({ navigation }) {
         />
       </ScrollView>
 
-      {/* Barra de Navegación del Técnico */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={styles.navTab}
-          onPress={() => navigation?.navigate('TecnicoSolicitudesScreen')}
-        >
-          <Text style={styles.navTabText}>SOLICITUDES</Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.navTab}
-          onPress={() => navigation?.navigate('TecnicoHistorialScreen')}
-        >
-          <Text style={styles.navTabText}>HISTORIAL</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.navTab, styles.navTabActive]}>
-          <Text style={[styles.navTabText, styles.navTabTextActive]}>PERFIL TÉCNICO</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }

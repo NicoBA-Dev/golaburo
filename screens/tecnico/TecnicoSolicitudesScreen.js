@@ -72,7 +72,6 @@ export default function TecnicoSolicitudesScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* TopBar Superior */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.menuBtn}>
           <Ionicons name="menu-outline" size={26} color={colors.textMain} />
@@ -84,14 +83,12 @@ export default function TecnicoSolicitudesScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Buscador */}
         <InputField
           placeholder="Buscar"
           value={search}
           onChangeText={setSearch}
         />
 
-        {/* Lista de Tarjetas de Solicitudes */}
         {filteredSolicitudes.map((item) => (
           <View key={item.id} style={styles.card}>
             <Text style={styles.cardTitle}>{item.titulo}</Text>
@@ -143,7 +140,6 @@ export default function TecnicoSolicitudesScreen({ navigation }) {
               />
             </View>
 
-            {/* Widget Mapa / Dirección */}
             <View style={styles.mapWidget}>
               <View style={styles.mapInfo}>
                 <Ionicons name="location" size={24} color={colors.primary} style={{ marginRight: 8 }} />
@@ -167,27 +163,7 @@ export default function TecnicoSolicitudesScreen({ navigation }) {
         )}
       </ScrollView>
 
-      {/* Barra de Navegación Inferior en Verde Soft/Primary */}
-      // Dentro del bloque de la barra inferior de TecnicoSolicitudesScreen.js:
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={[styles.navTab, styles.navTabActive]}>
-          <Text style={[styles.navTabText, styles.navTabTextActive]}>SOLICITUDES</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.navTab}
-          onPress={() => navigation?.navigate('TecnicoHistorialScreen')}
-        >
-          <Text style={styles.navTabText}>HISTORIAL</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.navTab}
-          onPress={() => navigation?.navigate('PerfilTecnicoStack')}
-        >
-          <Text style={styles.navTabText}>PERFIL TÉCNICO</Text>
-        </TouchableOpacity>
-      </View>
+     
     </SafeAreaView>
   );
 }

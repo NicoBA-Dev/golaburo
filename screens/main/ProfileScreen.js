@@ -69,7 +69,7 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handleGoToTechnicianPanel = () => {
-    navigation?.navigate('PerfilTecnicoStack');
+    navigation?.navigate('TecnicoPanel');
   };
 
   const handleLogout = async () => {
