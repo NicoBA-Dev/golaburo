@@ -7,6 +7,9 @@ import { supabase } from '../config/supabaseConfig';
 import BienvenidaScreen from '../screens/BienvenidaScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import TecnicoSolicitudesScreen from '../screens/tecnico/TecnicoSolicitudesScreen';
+import TecnicoHistorialScreen from '../screens/tecnico/TecnicoHistorialScreen';
+import PerfilTecnicoScreen from '../screens/main/PerfilTecnicoScreen';
 import MainTabNavigator from './MainTabNavigator';
 
 const Stack = createNativeStackNavigator();
@@ -71,9 +74,14 @@ export default function AppNavigator() {
         {/* ESTADO 1: Cargando (Muestra el Splash Screen) */}
         {!isReady ? (
           <Stack.Screen name="Splash" component={BienvenidaScreen} />
-        ) : /* ESTADO 2: Usuario logueado (Muestra la app principal) */
+        ) : /* ESTADO 2: Usuario logueado (Muestra la app principal y la vista independiente del técnico) */
           session ? (
-            <Stack.Screen name="Main" component={MainTabNavigator} />
+            <>
+              <Stack.Screen name="Main" component={MainTabNavigator} />
+              <Stack.Screen name="PerfilTecnicoStack" component={PerfilTecnicoScreen} />
+              <Stack.Screen name="TecnicoSolicitudesScreen" component={TecnicoSolicitudesScreen} />
+              <Stack.Screen name="TecnicoHistorialScreen" component={TecnicoHistorialScreen} />
+            </>
           ) : (
             /* ESTADO 3: Sin sesión (Muestra Login y Registro) */
             <>
