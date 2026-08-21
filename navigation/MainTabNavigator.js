@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack'; // Añadido para el ProfileStack de Leo
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
@@ -9,21 +10,22 @@ import { fontSize, fontWeight } from '../theme/typography';
 // Pantallas principales
 import HomeScreen from '../screens/main/HomeScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
+import RegistroTecnicoScreen from '../screens/main/RegistroTecnicoScreen';
+import PerfilTecnicoScreen from '../screens/main/PerfilTecnicoScreen';
 
-// ENRUTADORES ANIDADOS (Stacks)
+// NUESTROS STACKS (Los que habíamos armado y Leo borró sin querer)
 import SearchStackNavigator from './SearchStackNavigator';
 import RequestsStackNavigator from './RequestsStackNavigator';
 
-// Mapa de íconos por pestaña
+// 1. Mapa de íconos por pestaña
 const TAB_ICONS = {
     Inicio: { active: 'home', inactive: 'home-outline' },
     Buscar: { active: 'search', inactive: 'search-outline' },
     Solicitudes: { active: 'clipboard', inactive: 'clipboard-outline' },
-    Mensajes: { active: 'chatbubble', inactive: 'chatbubble-outline' },
     Perfil: { active: 'person', inactive: 'person-outline' },
 };
 
-// Pantalla temporal para Mensajes
+// 2. Pantalla Temporal (Placeholder)
 function PlaceholderScreen({ name, icon }) {
     return (
         <View style={placeholderStyles.container}>
@@ -48,25 +50,39 @@ const placeholderStyles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 36,
-        backgroundColor: colors.primarySoft || '#E8F5E9',
+        backgroundColor: colors.primarySoft,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 16,
     },
     title: {
-        fontSize: fontSize?.lg || 20,
-        fontWeight: fontWeight?.semibold || '600',
+        fontSize: fontSize.lg,
+        fontWeight: fontWeight.semibold,
         color: colors.textMain,
         marginBottom: 6,
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: fontSize?.sm || 14,
+        fontSize: fontSize.sm,
         color: colors.textMuted,
         textAlign: 'center',
     },
 });
 
+// 3. Stack interno para el flujo del Perfil (DE LEONARDO)
+const ProfileStack = createNativeStackNavigator();
+
+function ProfileStackNavigator() {
+    return (
+        <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+            <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
+            <ProfileStack.Screen name="RegistroTecnicoScreen" component={RegistroTecnicoScreen} />
+            <ProfileStack.Screen name="PerfilTecnicoScreen" component={PerfilTecnicoScreen} />
+        </ProfileStack.Navigator>
+    );
+}
+
+// 4. Navegador principal por pestañas (Tab Navigator)
 const Tab = createBottomTabNavigator();
 
 export default function MainTabNavigator() {
@@ -88,14 +104,14 @@ export default function MainTabNavigator() {
                     paddingBottom: Math.max(insets.bottom, 8),
                     paddingTop: 8,
                     elevation: 10,
-                    shadowColor: colors.shadow || '#000',
+                    shadowColor: colors.shadow,
                     shadowOpacity: 0.05,
                     shadowRadius: 10,
                     shadowOffset: { width: 0, height: -2 },
                 },
                 tabBarLabelStyle: {
-                    fontSize: fontSize?.xs || 11,
-                    fontWeight: fontWeight?.medium || '500',
+                    fontSize: fontSize.xs,
+                    fontWeight: fontWeight.medium,
                     marginTop: -2,
                 },
                 tabBarIcon: ({ focused, color, size }) => {
@@ -107,6 +123,7 @@ export default function MainTabNavigator() {
         >
             <Tab.Screen name="Inicio" component={HomeScreen} />
 
+            {/* NUESTRO BUSCADOR RESTAURADO */}
             <Tab.Screen
                 name="Buscar"
                 component={SearchStackNavigator}
@@ -118,26 +135,17 @@ export default function MainTabNavigator() {
                 })}
             />
 
+            {/* NUESTRAS SOLICITUDES RESTAURADAS */}
             <Tab.Screen
                 name="Solicitudes"
                 component={RequestsStackNavigator}
                 options={{
                     tabBarBadge: undefined,
-                    tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 11 },
+                    tabBarBadgeStyle: { backgroundColor: colors.secondary || colors.primary, fontSize: fontSize.xs || 11 },
                 }}
             />
-
-            <Tab.Screen
-                name="Mensajes"
-                options={{
-                    tabBarBadge: undefined,
-                    tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 11 },
-                }}
-            >
-                {() => <PlaceholderScreen name="Mensajes" icon="chatbubble-outline" />}
-            </Tab.Screen>
-
-            <Tab.Screen name="Perfil" component={ProfileScreen} />
+            {/* Pestaña Perfil usando el Stack de Leonardo */}
+            <Tab.Screen name="Perfil" component={ProfileStackNavigator} />
         </Tab.Navigator>
     );
 }
