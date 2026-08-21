@@ -12,13 +12,14 @@ import ProfileScreen from '../screens/main/ProfileScreen';
 
 // ENRUTADORES ANIDADOS (Stacks)
 import SearchStackNavigator from './SearchStackNavigator';
-import RequestsStackNavigator from './RequestsStackNavigator'; // IMPORTAMOS EL NUEVO STACK
+import RequestsStackNavigator from './RequestsStackNavigator';
 
 // Mapa de íconos por pestaña
 const TAB_ICONS = {
     Inicio: { active: 'home', inactive: 'home-outline' },
     Buscar: { active: 'search', inactive: 'search-outline' },
     Solicitudes: { active: 'clipboard', inactive: 'clipboard-outline' },
+    Mensajes: { active: 'chatbubble', inactive: 'chatbubble-outline' },
     Perfil: { active: 'person', inactive: 'person-outline' },
 };
 
@@ -36,10 +37,34 @@ function PlaceholderScreen({ name, icon }) {
 }
 
 const placeholderStyles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, paddingHorizontal: 32 },
-    iconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#E8F5E9', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-    title: { fontSize: fontSize?.lg || 20, fontWeight: fontWeight?.semibold || '600', color: colors.textMain, marginBottom: 6, textAlign: 'center' },
-    subtitle: { fontSize: fontSize?.sm || 14, color: colors.textMuted, textAlign: 'center' },
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.background,
+        paddingHorizontal: 32,
+    },
+    iconCircle: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: colors.primarySoft || '#E8F5E9',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    title: {
+        fontSize: fontSize?.lg || 20,
+        fontWeight: fontWeight?.semibold || '600',
+        color: colors.textMain,
+        marginBottom: 6,
+        textAlign: 'center',
+    },
+    subtitle: {
+        fontSize: fontSize?.sm || 14,
+        color: colors.textMuted,
+        textAlign: 'center',
+    },
 });
 
 const Tab = createBottomTabNavigator();
@@ -56,11 +81,23 @@ export default function MainTabNavigator() {
                 tabBarInactiveTintColor: colors.textMuted,
                 tabBarHideOnKeyboard: true,
                 tabBarStyle: {
-                    backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border,
-                    height: tabBarHeight, paddingBottom: Math.max(insets.bottom, 8), paddingTop: 8,
-                    elevation: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: -2 },
+                    backgroundColor: colors.surface,
+                    borderTopWidth: 1,
+                    borderTopColor: colors.border,
+                    height: tabBarHeight,
+                    paddingBottom: Math.max(insets.bottom, 8),
+                    paddingTop: 8,
+                    elevation: 10,
+                    shadowColor: colors.shadow || '#000',
+                    shadowOpacity: 0.05,
+                    shadowRadius: 10,
+                    shadowOffset: { width: 0, height: -2 },
                 },
-                tabBarLabelStyle: { fontSize: fontSize?.xs || 11, fontWeight: fontWeight?.medium || '500', marginTop: -2 },
+                tabBarLabelStyle: {
+                    fontSize: fontSize?.xs || 11,
+                    fontWeight: fontWeight?.medium || '500',
+                    marginTop: -2,
+                },
                 tabBarIcon: ({ focused, color, size }) => {
                     const icons = TAB_ICONS[route.name];
                     const iconName = focused ? icons?.active : icons?.inactive;
@@ -81,7 +118,6 @@ export default function MainTabNavigator() {
                 })}
             />
 
-            {/* EL STACK CONECTADO CORRECTAMENTE */}
             <Tab.Screen
                 name="Solicitudes"
                 component={RequestsStackNavigator}
@@ -90,6 +126,17 @@ export default function MainTabNavigator() {
                     tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 11 },
                 }}
             />
+
+            <Tab.Screen
+                name="Mensajes"
+                options={{
+                    tabBarBadge: undefined,
+                    tabBarBadgeStyle: { backgroundColor: colors.primary, fontSize: 11 },
+                }}
+            >
+                {() => <PlaceholderScreen name="Mensajes" icon="chatbubble-outline" />}
+            </Tab.Screen>
+
             <Tab.Screen name="Perfil" component={ProfileScreen} />
         </Tab.Navigator>
     );
