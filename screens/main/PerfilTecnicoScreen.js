@@ -74,26 +74,18 @@ export default function PerfilTecnicoScreen({ navigation }) {
     }
   };
 
-  // Redirección directa a la pestaña de Perfil dentro del MainTabNavigator
   const handleReturnToUserProfile = () => {
-    navigation?.navigate('Main');
+    navigation?.navigate('Main', { screen: 'Perfil' });
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* TopBar Superior */}
+      {/* TopBar Limpia */}
       <View style={styles.topBar}>
-        <TouchableOpacity
-          onPress={() => navigation?.navigate('TecnicoSolicitudesScreen')}
-          style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={24} color={colors.textMain} />
-        </TouchableOpacity>
         <Text style={styles.topBarTitle}>Perfil de Técnico</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Calificación Global */}
         <View style={styles.ratingContainer}>
           <Text style={styles.ratingTitle}>
             Calificación Global: <Text style={styles.ratingValue}>{techData.rating}</Text>
@@ -106,7 +98,6 @@ export default function PerfilTecnicoScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Avatar e Identidad del Técnico */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
             <Ionicons name="person-outline" size={42} color={colors.textMuted} />
@@ -121,7 +112,6 @@ export default function PerfilTecnicoScreen({ navigation }) {
           <Text style={styles.userLocation}>{techData.location}</Text>
         </View>
 
-        {/* Campos Editables */}
         <View style={styles.fieldRow}>
           <View style={styles.inputFlex}>
             <InputField
@@ -215,7 +205,6 @@ export default function PerfilTecnicoScreen({ navigation }) {
           />
         )}
 
-        {/* Botón que redirige explícitamente a la pestaña Perfil de Usuario */}
         <PrimaryButton
           title="Dirigir al Perfil de Usuario"
           onPress={handleReturnToUserProfile}
@@ -223,8 +212,6 @@ export default function PerfilTecnicoScreen({ navigation }) {
           style={styles.returnBtn}
         />
       </ScrollView>
-
-
     </SafeAreaView>
   );
 }
@@ -234,15 +221,15 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.surface,
   },
-  backBtn: { padding: 4, marginRight: 12 },
-  topBarTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.textMain },
-  container: { padding: 16, paddingBottom: 80 },
+  topBarTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.primary },
+  container: { padding: 16, paddingBottom: 40 },
   ratingContainer: { alignItems: 'center', marginBottom: 16 },
   ratingTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold, color: colors.textMain, marginBottom: 6 },
   ratingValue: { fontWeight: typography.fontWeight.bold },
@@ -270,21 +257,4 @@ const styles = StyleSheet.create({
   editBtnActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   saveBtn: { marginBottom: 12 },
   returnBtn: { marginTop: 8, marginBottom: 10 },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  navTab: { borderWidth: 1, borderColor: colors.border, borderRadius: 20, paddingVertical: 6, paddingHorizontal: 14, backgroundColor: colors.surface },
-  navTabActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
-  navTabText: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.bold, color: colors.textMuted },
-  navTabTextActive: { color: colors.primary },
 });
