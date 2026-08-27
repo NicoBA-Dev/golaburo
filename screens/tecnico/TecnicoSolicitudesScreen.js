@@ -15,7 +15,6 @@ import { typography } from '../../theme/typography';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
 
-// Datos de prueba locales (Simulación JSON)
 const INITIAL_SOLICITUDES = [
   {
     id: '1',
@@ -45,7 +44,7 @@ const INITIAL_SOLICITUDES = [
   },
 ];
 
-export default function TecnicoSolicitudesScreen({ navigation }) {
+export default function TecnicoSolicitudesScreen() {
   const [solicitudes, setSolicitudes] = useState(INITIAL_SOLICITUDES);
   const [search, setSearch] = useState('');
 
@@ -72,14 +71,9 @@ export default function TecnicoSolicitudesScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* TopBar Limpia */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.menuBtn}>
-          <Ionicons name="menu-outline" size={26} color={colors.textMain} />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>GO LABURO - Técnico</Text>
-        <TouchableOpacity onPress={() => navigation?.navigate('PerfilTecnicoStack')}>
-          <Ionicons name="person-circle-outline" size={28} color={colors.primary} />
-        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -124,7 +118,6 @@ export default function TecnicoSolicitudesScreen({ navigation }) {
 
             <Text style={styles.timeText}>{item.tiempoRecibido}</Text>
 
-            {/* Botones Aceptar / Rechazar con Estilo Verde Institutional */}
             <View style={styles.actionButtonsRow}>
               <PrimaryButton
                 title="RECHAZAR"
@@ -162,8 +155,6 @@ export default function TecnicoSolicitudesScreen({ navigation }) {
           </View>
         )}
       </ScrollView>
-
-     
     </SafeAreaView>
   );
 }
@@ -171,29 +162,26 @@ export default function TecnicoSolicitudesScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background, // #F7F7F7
+    backgroundColor: colors.background,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    backgroundColor: colors.surface, // #FFFFFF
-  },
-  menuBtn: {
-    padding: 4,
+    backgroundColor: colors.surface,
   },
   headerTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-    color: colors.primary, // Verde principal de la marca
+    color: colors.primary,
   },
   container: {
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 40,
   },
   card: {
     backgroundColor: colors.surface,
@@ -301,40 +289,5 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: typography.fontSize.md,
     color: colors.textMuted,
-  },
-
-  /* Barra de Navegación del Técnico */
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  navTab: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    backgroundColor: colors.surface,
-  },
-  navTabActive: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primary,
-  },
-  navTabText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textMuted,
-  },
-  navTabTextActive: {
-    color: colors.primary,
   },
 });
