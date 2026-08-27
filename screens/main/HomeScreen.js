@@ -1,47 +1,89 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 
-// Componentes
 import HomeHeader from '../../components/home/HomeHeader';
 import CategoryCard from '../../components/home/CategoryCard';
+import { categoryService } from '../../services/categoryService';
+import { profileService } from '../../services/profileService';
+import { authService } from '../../services/authService';
 
-export default function HomeScreen() {
+// Diccionario para adaptar los íconos genéricos de la BD a Ionicons 
+// y rellenar las descripciones nulas con textos atractivos.
+const CATEGORY_META = {
+    'Plomería': { icon: 'water-outline', desc: 'Fugas, grifería, tuberías' },
+    'Electricidad': { icon: 'flash-outline', desc: 'Cortocircuitos, cableado' },
+    'Cerrajería': { icon: 'key-outline', desc: 'Aperturas, chapas, llaves' },
+    'Pintura': { icon: 'color-palette-outline', desc: 'Interiores, exteriores' },
+    'Reparación de electrodomésticos': { icon: 'construct-outline', desc: 'Lavadoras, refrigeradores' }
+};
+
+export default function HomeScreen({ navigation }) {
+    const [categories, setCategories] = useState([]);
+    const [userName, setUserName] = useState('Usuario');
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const loadHomeData = async () => {
+            try {
+                // 1. Cargar nombre del usuario para el HomeHeader
+                const session = await authService.getCurrentSession();
+                if (session) {
+                    const profile = await profileService.getProfile(session.user.id);
+                    if (profile?.full_name) {
+                        setUserName(profile.full_name);
+                    }
+                }
+
+                // 2. Cargar categorías de Supabase
+                const data = await categoryService.getCategories();
+
+                // Mostrar estrictamente las primeras 4 categorías
+                setCategories(data ? data.slice(0, 4) : []);
+            } catch (error) {
+                console.error("Error cargando el Home:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const unsubscribe = navigation?.addListener('focus', loadHomeData);
+        return unsubscribe;
+    }, [navigation]);
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-                {/* Cabecera limpia */}
-                <HomeHeader userName="Juan" />
+                <HomeHeader userName={userName} />
 
-                <Text style={styles.sectionTitle}>¿Qué servicio necesitas?</Text>
-
-                {/* Cuadrícula de Servicios (2 columnas) */}
-                <View style={styles.gridContainer}>
-                    <CategoryCard
-                        title="Plomería"
-                        description="Fugas, grifería, tuberías"
-                        iconName="water-outline"
-                    />
-                    <CategoryCard
-                        title="Electricidad"
-                        description="Cortocircuitos, cableado"
-                        iconName="flash-outline"
-                    />
-                    <CategoryCard
-                        title="Cerrajería"
-                        description="Aperturas, chapas, llaves"
-                        iconName="key-outline"
-                    />
-                    <CategoryCard
-                        title="Pintura"
-                        description="Interiores, exteriores"
-                        iconName="color-palette-outline"
-                    />
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>¿Qué servicio necesitas?</Text>
+                    <TouchableOpacity onPress={() => navigation.navigate('Buscar', { screen: 'Explore' })}>
+                        <Text style={styles.seeAllText}>Ver todos</Text>
+                    </TouchableOpacity>
                 </View>
 
-                {/* Banner Destacado: Reparación de Equipos */}
+                {loading ? (
+                    <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+                ) : (
+                    <View style={styles.gridContainer}>
+                        {categories.map((cat) => {
+                            const meta = CATEGORY_META[cat.name] || { icon: 'build-outline', desc: 'Servicio garantizado' };
+                            return (
+                                <CategoryCard
+                                    key={cat.id}
+                                    title={cat.name}
+                                    description={meta.desc}
+                                    iconName={meta.icon}
+                                    onPress={() => navigation.navigate('Buscar', { screen: 'Explore', params: { category: cat.name } })}
+                                />
+                            );
+                        })}
+                    </View>
+                )}
+
                 <TouchableOpacity style={styles.specialBanner} activeOpacity={0.8}>
                     <View style={styles.specialIconBg}>
                         <Ionicons name="hardware-chip-outline" size={32} color={colors.primary} />
@@ -52,7 +94,6 @@ export default function HomeScreen() {
                     </View>
                 </TouchableOpacity>
 
-                {/* Badge de Seguridad (Usando el verde principal para dar confianza) */}
                 <View style={styles.trustBadge}>
                     <Ionicons name="shield-checkmark" size={36} color={colors.surface} />
                     <View style={styles.trustTextContainer}>
@@ -67,76 +108,20 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: colors.background,
-    },
-    scroll: {
-        padding: 20,
-        paddingBottom: 40,
-    },
-    sectionTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: colors.textMain,
-        marginBottom: 15,
-    },
-    gridContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        marginBottom: 10,
-    },
-    specialBanner: {
-        backgroundColor: colors.surface,
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        marginBottom: 20,
-    },
-    specialIconBg: {
-        backgroundColor: colors.background,
-        padding: 12,
-        borderRadius: 12,
-        marginRight: 15,
-    },
-    bannerTextContainer: {
-        flex: 1,
-    },
-    bannerTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: colors.textMain,
-        marginBottom: 4,
-    },
-    bannerDesc: {
-        fontSize: 13,
-        color: colors.textMuted,
-        lineHeight: 18,
-    },
-    trustBadge: {
-        backgroundColor: colors.primary, // Fondo verde para transmitir seguridad
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 18,
-        borderRadius: 16,
-    },
-    trustTextContainer: {
-        flex: 1,
-        marginLeft: 15,
-    },
-    trustTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: colors.surface, // Texto blanco
-        marginBottom: 4,
-    },
-    trustDesc: {
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.85)', // Blanco ligeramente transparente
-        lineHeight: 18,
-    },
+    safeArea: { flex: 1, backgroundColor: colors.background },
+    scroll: { padding: 20, paddingBottom: 40 },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginTop: 10 },
+    sectionTitle: { fontSize: 20, fontWeight: 'bold', color: colors.textMain },
+    seeAllText: { fontSize: 14, fontWeight: '600', color: colors.primary },
+    loader: { marginVertical: 40 },
+    gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 10 },
+    specialBanner: { backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: colors.border, marginBottom: 20, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+    specialIconBg: { backgroundColor: colors.primarySoft, padding: 12, borderRadius: 14, marginRight: 15 },
+    bannerTextContainer: { flex: 1 },
+    bannerTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textMain, marginBottom: 4 },
+    bannerDesc: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
+    trustBadge: { backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 20 },
+    trustTextContainer: { flex: 1, marginLeft: 15 },
+    trustTitle: { fontSize: 16, fontWeight: 'bold', color: colors.surface, marginBottom: 4 },
+    trustDesc: { fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 18 },
 });
