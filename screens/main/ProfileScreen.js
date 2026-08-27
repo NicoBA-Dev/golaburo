@@ -8,7 +8,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Switch
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -40,7 +40,6 @@ export default function ProfileScreen({ navigation }) {
   const [isSavingPhone, setIsSavingPhone] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // ESTADOS PARA PERSISTENCIA LOCAL
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
@@ -66,14 +65,12 @@ export default function ProfileScreen({ navigation }) {
         setNombre(profile?.full_name || '');
         setPhone(profile?.phone || '');
 
-        // Recuperar Almacenamiento Local
         const localPrefs = await storageService.getLocalPreferences();
         setNotificationsEnabled(localPrefs.notificationsEnabled);
 
         await storageService.saveLocalPreferences(currentEmail, localPrefs.notificationsEnabled);
-
       } catch (error) {
-        console.error("Error cargando perfil:", error);
+        console.error('Error cargando perfil:', error);
       }
     };
 
@@ -92,12 +89,11 @@ export default function ProfileScreen({ navigation }) {
 
       setUserData((prev) => ({
         ...prev,
-        [field === 'full_name' ? 'nombre' : 'phone']: value
+        [field === 'full_name' ? 'nombre' : 'phone']: value,
       }));
 
       if (field === 'full_name') setIsEditingNombre(false);
       if (field === 'phone') setIsEditingPhone(false);
-
     } catch (error) {
       Alert.alert('Error', 'No se pudo actualizar el dato en el servidor.');
     } finally {
@@ -143,7 +139,6 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
             <Ionicons name="person-outline" size={40} color={colors.primary} />
@@ -152,7 +147,6 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.location}>{userData.location}</Text>
         </View>
 
-        {/* SECCIÓN 1: DATOS PERSONALES */}
         <Text style={styles.sectionTitle}>Datos Personales</Text>
         <View style={styles.cardSection}>
           <View style={styles.fieldWrapper}>
@@ -167,12 +161,16 @@ export default function ProfileScreen({ navigation }) {
             <TouchableOpacity
               disabled={isSavingNombre}
               style={[styles.editIconBtn, isEditingNombre && styles.editIconBtnActive]}
-              onPress={() => isEditingNombre ? handleInlineSave('full_name', nombre) : setIsEditingNombre(true)}
+              onPress={() => (isEditingNombre ? handleInlineSave('full_name', nombre) : setIsEditingNombre(true))}
             >
               {isSavingNombre ? (
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Ionicons name={isEditingNombre ? 'checkmark' : 'pencil-outline'} size={20} color={isEditingNombre ? colors.primary : colors.textMain} />
+                <Ionicons
+                  name={isEditingNombre ? 'checkmark' : 'pencil-outline'}
+                  size={20}
+                  color={isEditingNombre ? colors.primary : colors.textMain}
+                />
               )}
             </TouchableOpacity>
           </View>
@@ -190,12 +188,16 @@ export default function ProfileScreen({ navigation }) {
             <TouchableOpacity
               disabled={isSavingPhone}
               style={[styles.editIconBtn, isEditingPhone && styles.editIconBtnActive]}
-              onPress={() => isEditingPhone ? handleInlineSave('phone', phone) : setIsEditingPhone(true)}
+              onPress={() => (isEditingPhone ? handleInlineSave('phone', phone) : setIsEditingPhone(true))}
             >
               {isSavingPhone ? (
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Ionicons name={isEditingPhone ? 'checkmark' : 'pencil-outline'} size={20} color={isEditingPhone ? colors.primary : colors.textMain} />
+                <Ionicons
+                  name={isEditingPhone ? 'checkmark' : 'pencil-outline'}
+                  size={20}
+                  color={isEditingPhone ? colors.primary : colors.textMain}
+                />
               )}
             </TouchableOpacity>
           </View>
@@ -211,9 +213,8 @@ export default function ProfileScreen({ navigation }) {
               />
             </View>
           </View>
-        </View> {/* <-- ¡AQUÍ ESTABA EL ERROR! AHORA CIERRA CON VIEW */}
+        </View>
 
-        {/* SECCIÓN 2: PREFERENCIAS LOCALES */}
         <Text style={styles.sectionTitle}>Preferencias de la App</Text>
         <View style={styles.cardSection}>
           <View style={styles.preferenceRow}>
@@ -235,7 +236,6 @@ export default function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* SECCIÓN 3: MODO TÉCNICO */}
         <Text style={styles.sectionTitle}>Modo Trabajador</Text>
         {!userData.isTechnician ? (
           <PrimaryButton
@@ -254,7 +254,6 @@ export default function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* CERRAR SESIÓN */}
         <TouchableOpacity
           style={styles.logoutBtn}
           onPress={handleLogout}
@@ -271,19 +270,67 @@ export default function ProfileScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.surface },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
   backBtn: { padding: 4, marginRight: 12 },
   topBarTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.textMain },
   container: { padding: 16, paddingBottom: 40 },
   header: { alignItems: 'center', marginBottom: 24 },
-  avatarContainer: { width: 90, height: 90, borderRadius: 45, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: 12, elevation: 2, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+  avatarContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
   name: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.textMain, marginBottom: 2 },
   location: { fontSize: typography.fontSize.sm, color: colors.textMuted },
-  sectionTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.textMuted, marginBottom: 8, marginLeft: 4, marginTop: 10 },
-  cardSection: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 20, elevation: 2, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, borderWidth: 1, borderColor: colors.border },
+  sectionTitle: {
+    fontSize: typography.fontSize.md,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textMuted,
+    marginBottom: 8,
+    marginLeft: 4,
+    marginTop: 10,
+  },
+  cardSection: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    elevation: 2,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   fieldWrapper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   inputContainer: { flex: 1 },
-  editIconBtn: { padding: 10, marginBottom: 16, marginLeft: 8, borderRadius: 8, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
+  editIconBtn: {
+    padding: 10,
+    marginBottom: 16,
+    marginLeft: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
   editIconBtnActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   preferenceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
   preferenceTextContainer: { flexDirection: 'row', alignItems: 'center' },
@@ -291,8 +338,31 @@ const styles = StyleSheet.create({
   clearDataBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
   clearDataText: { color: colors.error, fontSize: typography.fontSize.sm, marginLeft: 8, fontWeight: typography.fontWeight.medium },
   btnPrimary: { marginBottom: 10, borderRadius: 12 },
-  technicianPanelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, marginBottom: 10, elevation: 3, shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
+  technicianPanelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 10,
+    elevation: 3,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
   technicianPanelBtnText: { color: colors.white, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background, borderWidth: 1, borderColor: colors.errorSoft, paddingVertical: 14, borderRadius: 12, marginTop: 10 },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.errorSoft,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 10,
+  },
   logoutText: { fontSize: typography.fontSize.sm, color: colors.error, marginLeft: 8, fontWeight: typography.fontWeight.bold },
 });

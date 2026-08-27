@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   Modal,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,102 +16,88 @@ import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
-
-// Datos de prueba ampliados
-const INITIAL_HISTORIAL = [
-  {
-    id: '101',
-    servicio: 'Mantenimiento de Calefón',
-    cliente: 'Carlos Mendoza',
-    telefono: '76543210',
-    zona: 'Queru Queru (Cercado)',
-    direccion: 'Av. América #1234',
-    fecha: '10/08/2026',
-    monto: 'Bs. 150',
-    estado: 'En Proceso', // 'Completado' | 'En Proceso' | 'Cancelado'
-    rating: 5,
-    comentario: 'Revisión general de fuga de gas y limpieza de inyectores.',
-  },
-  {
-    id: '102',
-    servicio: 'Cambio de llaves de paso',
-    cliente: 'Ana Patricia V.',
-    telefono: '71234567',
-    zona: 'Sarco',
-    direccion: 'Calle Melchor Pérez #567',
-    fecha: '05/08/2026',
-    monto: 'Bs. 90',
-    estado: 'Completado',
-    rating: 4,
-    comentario: 'Buen servicio, resolvió el problema rápido.',
-  },
-  {
-    id: '103',
-    servicio: 'Instalación de lavadora',
-    cliente: 'Roberto S.',
-    telefono: '60708090',
-    zona: 'Cala Cala',
-    direccion: 'Av. Juan de la Rosa #890',
-    fecha: '28/07/2026',
-    monto: 'Bs. 120',
-    estado: 'Cancelado',
-    rating: null,
-    comentario: 'El cliente canceló la solicitud por motivos personales.',
-  },
-];
+import { technicianService } from '../../services/technicianService';
 
 export default function TecnicoHistorialScreen() {
-  const [historial, setHistorial] = useState(INITIAL_HISTORIAL);
+  const [historial, setHistorial] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Todos');
   const [search, setSearch] = useState('');
-  
-  // Estado para el modal de detalle
+
   const [selectedJob, setSelectedJob] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+
+  const fetchHistory = async () => {
+    try {
+      setLoading(true);
+      const data = await technicianService.getRequestsHistory();
+      setHistorial(data);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo obtener el historial de Supabase.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   const handleOpenDetail = (job) => {
     setSelectedJob(job);
     setModalVisible(true);
   };
 
-  const handleUpdateStatus = (newStatus) => {
+  const handleUpdateStatus = async (dbStatus) => {
     if (!selectedJob) return;
 
-    setHistorial((prev) =>
-      prev.map((item) =>
-        item.id === selectedJob.id ? { ...item, estado: newStatus } : item
-      )
-    );
+    try {
+      await technicianService.updateRequestStatus(selectedJob.id, dbStatus);
+      
+      setHistorial((prev) =>
+        prev.map((item) =>
+          item.id === selectedJob.id ? { ...item, status: dbStatus } : item
+        )
+      );
 
-    setSelectedJob((prev) => ({ ...prev, estado: newStatus }));
-    setModalVisible(false);
-    Alert.alert('Estado Actualizado', `La solicitud ha sido marcada como "${newStatus}".`);
+      setModalVisible(false);
+      Alert.alert('Éxito', 'El estado fue actualizado en Supabase.');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'No se pudo actualizar el estado.');
+    }
+  };
+
+  const mapStatusLabel = (status) => {
+    switch (status) {
+      case 'accepted': return 'En Proceso';
+      case 'completed': return 'Completado';
+      case 'rejected': return 'Cancelado';
+      default: return status;
+    }
   };
 
   const filteredHistorial = historial.filter((item) => {
-    const matchesFilter = filter === 'Todos' || item.estado === filter;
+    const labelStatus = mapStatusLabel(item.status);
+    const matchesFilter = filter === 'Todos' || labelStatus === filter;
     const matchesSearch =
-      item.servicio.toLowerCase().includes(search.toLowerCase()) ||
-      item.cliente.toLowerCase().includes(search.toLowerCase());
+      item.description?.toLowerCase().includes(search.toLowerCase()) ||
+      item.client?.full_name?.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* TopBar Superior Sin botones de redirección */}
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>Historial de Trabajos</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Buscador */}
         <InputField
           placeholder="Buscar por trabajo o cliente..."
           value={search}
           onChangeText={setSearch}
         />
 
-        {/* Chips de Filtro */}
         <View style={styles.filterRow}>
           {['Todos', 'En Proceso', 'Completado', 'Cancelado'].map((status) => (
             <TouchableOpacity
@@ -133,78 +120,61 @@ export default function TecnicoHistorialScreen() {
           ))}
         </View>
 
-        {/* Lista de Trabajos (Interactivas para abrir modal) */}
-        {filteredHistorial.map((item) => {
-          const isCompleted = item.estado === 'Completado';
-          const isCancel = item.estado === 'Cancelado';
+        {loading ? (
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 30 }} />
+        ) : (
+          filteredHistorial.map((item) => {
+            const isCompleted = item.status === 'completed';
+            const isCancel = item.status === 'rejected';
 
-          return (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.card}
-              activeOpacity={0.85}
-              onPress={() => handleOpenDetail(item)}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={styles.serviceTitle}>{item.servicio}</Text>
-                <Text
-                  style={[
-                    styles.statusBadge,
-                    isCompleted
-                      ? styles.badgeSuccess
-                      : isCancel
-                      ? styles.badgeDanger
-                      : styles.badgeWarning,
-                  ]}
-                >
-                  {item.estado}
-                </Text>
-              </View>
-
-              <Text style={styles.infoText}>
-                <Text style={styles.boldText}>Cliente: </Text>
-                {item.cliente}
-              </Text>
-
-              <View style={styles.detailRow}>
-                <Text style={styles.infoText}>
-                  <Text style={styles.boldText}>Fecha: </Text>
-                  {item.fecha}
-                </Text>
-                <Text style={styles.montoText}>{item.monto}</Text>
-              </View>
-
-              {isCompleted && item.rating && (
-                <View style={styles.reviewBox}>
-                  <View style={styles.starsRow}>
-                    {[...Array(5)].map((_, i) => (
-                      <Ionicons
-                        key={i}
-                        name={i < item.rating ? 'star' : 'star-outline'}
-                        size={16}
-                        color={colors.warning}
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.comentarioText}>"{item.comentario}"</Text>
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.card}
+                activeOpacity={0.85}
+                onPress={() => handleOpenDetail(item)}
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={styles.serviceTitle}>{item.category?.name || 'Servicio'}</Text>
+                  <Text
+                    style={[
+                      styles.statusBadge,
+                      isCompleted
+                        ? styles.badgeSuccess
+                        : isCancel
+                        ? styles.badgeDanger
+                        : styles.badgeWarning,
+                    ]}
+                  >
+                    {mapStatusLabel(item.status)}
+                  </Text>
                 </View>
-              )}
 
-              {isCancel && (
-                <Text style={styles.cancelNotice}>{item.comentario}</Text>
-              )}
+                <Text style={styles.infoText}>
+                  <Text style={styles.boldText}>Cliente: </Text>
+                  {item.client?.full_name || 'Cliente'}
+                </Text>
 
-              <View style={styles.tapNoticeRow}>
-                <Text style={styles.tapNoticeText}>Toca para ver o modificar detalles</Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+                <View style={styles.detailRow}>
+                  <Text style={styles.infoText}>
+                    <Text style={styles.boldText}>Fecha: </Text>
+                    {item.suggested_date}
+                  </Text>
+                  <Text style={styles.montoText}>{item.zone}</Text>
+                </View>
 
-        {filteredHistorial.length === 0 && (
+                <View style={styles.tapNoticeRow}>
+                  <Text style={styles.tapNoticeText}>Toca para ver o modificar detalles</Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+
+        {!loading && filteredHistorial.length === 0 && (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No se encontraron registros.</Text>
+            <Text style={styles.emptyText}>No se encontraron registros en la base de datos.</Text>
           </View>
         )}
       </ScrollView>
@@ -212,89 +182,89 @@ export default function TecnicoHistorialScreen() {
       {/* MODAL DETALLADO DE SOLICITUD */}
       <Modal
         visible={modalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.modalContainer}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalDragIndicator} />
+
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Detalle del Trabajo</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close-circle" size={28} color={colors.textMuted} />
+                <Ionicons name="close-circle" size={26} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
 
             {selectedJob && (
               <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={styles.modalJobTitle}>{selectedJob.servicio}</Text>
+                <Text style={styles.modalJobTitle}>{selectedJob.category?.name}</Text>
 
                 <View style={styles.modalSection}>
                   <Text style={styles.modalLabel}>Estado Actual:</Text>
-                  <Text style={styles.modalValueHighlight}>{selectedJob.estado}</Text>
+                  <Text style={styles.modalValueHighlight}>{mapStatusLabel(selectedJob.status)}</Text>
                 </View>
 
                 <View style={styles.modalSection}>
                   <Text style={styles.modalLabel}>Cliente:</Text>
-                  <Text style={styles.modalValue}>{selectedJob.cliente} ({selectedJob.telefono})</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedJob.client?.full_name} ({selectedJob.client?.phone || 'Sin Teléfono'})
+                  </Text>
                 </View>
 
                 <View style={styles.modalSection}>
                   <Text style={styles.modalLabel}>Ubicación:</Text>
-                  <Text style={styles.modalValue}>{selectedJob.direccion} - {selectedJob.zona}</Text>
+                  <Text style={styles.modalValue}>
+                    {selectedJob.address} - {selectedJob.zone}
+                  </Text>
                 </View>
 
                 <View style={styles.modalSection}>
-                  <Text style={styles.modalLabel}>Fecha de Servicio:</Text>
-                  <Text style={styles.modalValue}>{selectedJob.fecha}</Text>
+                  <Text style={styles.modalLabel}>Descripción:</Text>
+                  <Text style={styles.modalValue}>{selectedJob.description}</Text>
                 </View>
 
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalLabel}>Monto Acordado:</Text>
-                  <Text style={styles.modalPrice}>{selectedJob.monto}</Text>
-                </View>
-
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalLabel}>Notas / Descripción:</Text>
-                  <Text style={styles.modalValue}>{selectedJob.comentario}</Text>
-                </View>
-
-                {/* BOTONES DE CAMBIO DE ESTADO */}
-                <Text style={styles.actionHeaderTitle}>Cambiar Estado de la Solicitud:</Text>
+                <Text style={styles.actionHeaderTitle}>Cambiar Estado en Supabase:</Text>
 
                 <PrimaryButton
                   title="MARCAR COMO COMPLETADO"
-                  onPress={() => handleUpdateStatus('Completado')}
+                  onPress={() => handleUpdateStatus('completed')}
                   variant="primary"
                   style={styles.actionBtn}
                 />
 
                 <PrimaryButton
                   title="MARCAR EN PROCESO / EN CURSO"
-                  onPress={() => handleUpdateStatus('En Proceso')}
+                  onPress={() => handleUpdateStatus('accepted')}
                   style={[styles.actionBtn, { backgroundColor: colors.textMain }]}
                 />
 
                 <PrimaryButton
                   title="CANCELAR SOLICITUD"
-                  onPress={() => handleUpdateStatus('Cancelado')}
+                  onPress={() => handleUpdateStatus('rejected')}
                   variant="outline"
                   style={[styles.actionBtn, { borderColor: colors.error }]}
                 />
               </ScrollView>
             )}
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -305,20 +275,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     backgroundColor: colors.surface,
   },
-  topBarTitle: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
-  },
-  container: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
+  topBarTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.primary },
+  container: { padding: 16, paddingBottom: 40 },
+  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   filterChip: {
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -327,19 +286,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  filterChipActive: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primary,
-  },
-  filterText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textMuted,
-  },
-  filterTextActive: {
-    color: colors.primary,
-    fontWeight: typography.fontWeight.bold,
-  },
+  filterChipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+  filterText: { fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.textMuted },
+  filterTextActive: { color: colors.primary, fontWeight: typography.fontWeight.bold },
   card: {
     backgroundColor: colors.surface,
     borderWidth: 1.5,
@@ -348,18 +297,8 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 14,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  serviceTitle: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textMain,
-    flex: 1,
-  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  serviceTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.textMain, flex: 1 },
   statusBadge: {
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.bold,
@@ -368,143 +307,43 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
   },
-  badgeSuccess: {
-    backgroundColor: colors.successSoft,
-    color: colors.success,
-  },
-  badgeDanger: {
-    backgroundColor: colors.errorSoft,
-    color: colors.error,
-  },
-  badgeWarning: {
-    backgroundColor: colors.primarySoft,
-    color: colors.primary,
-  },
-  infoText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.textMain,
-    marginBottom: 4,
-  },
-  boldText: {
-    fontWeight: typography.fontWeight.bold,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  montoText: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
-  },
-  reviewBox: {
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 4,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    gap: 2,
-    marginBottom: 4,
-  },
-  comentarioText: {
-    fontSize: typography.fontSize.xs,
-    color: colors.textMuted,
-    fontStyle: 'italic',
-  },
-  cancelNotice: {
-    fontSize: typography.fontSize.xs,
-    color: colors.error,
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  tapNoticeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginTop: 10,
-    gap: 4,
-  },
-  tapNoticeText: {
-    fontSize: typography.fontSize.xs,
-    color: colors.primary,
-    fontWeight: typography.fontWeight.medium,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    marginTop: 40,
-  },
-  emptyText: {
-    fontSize: typography.fontSize.md,
-    color: colors.textMuted,
-  },
-
-  /* Modal Estilos */
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
+  badgeSuccess: { backgroundColor: colors.successSoft, color: colors.success },
+  badgeDanger: { backgroundColor: colors.errorSoft, color: colors.error },
+  badgeWarning: { backgroundColor: colors.primarySoft, color: colors.primary },
+  infoText: { fontSize: typography.fontSize.sm, color: colors.textMain, marginBottom: 4 },
+  boldText: { fontWeight: typography.fontWeight.bold },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  montoText: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.primary },
+  tapNoticeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 10, gap: 4 },
+  tapNoticeText: { fontSize: typography.fontSize.xs, color: colors.primary, fontWeight: typography.fontWeight.medium },
+  emptyContainer: { alignItems: 'center', marginTop: 40 },
+  emptyText: { fontSize: typography.fontSize.md, color: colors.textMuted },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.25)', justifyContent: 'flex-end' },
   modalContainer: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '85%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 28,
+    maxHeight: '80%',
+    elevation: 20,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textMain,
-  },
-  modalJobTitle: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
-    marginBottom: 16,
-  },
-  modalSection: {
+  modalDragIndicator: {
+    width: 38,
+    height: 4,
+    backgroundColor: colors.border,
+    borderRadius: 2,
+    alignSelf: 'center',
     marginBottom: 12,
   },
-  modalLabel: {
-    fontSize: typography.fontSize.xs,
-    color: colors.textMuted,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  modalValue: {
-    fontSize: typography.fontSize.sm,
-    color: colors.textMain,
-    marginTop: 2,
-  },
-  modalValueHighlight: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
-    marginTop: 2,
-  },
-  modalPrice: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
-    marginTop: 2,
-  },
-  actionHeaderTitle: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textMain,
-    marginTop: 16,
-    marginBottom: 10,
-  },
-  actionBtn: {
-    marginBottom: 10,
-  },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  modalTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.textMain },
+  modalJobTitle: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.primary, marginBottom: 14 },
+  modalSection: { marginBottom: 10 },
+  modalLabel: { fontSize: typography.fontSize.xs, color: colors.textMuted, fontWeight: typography.fontWeight.semibold },
+  modalValue: { fontSize: typography.fontSize.sm, color: colors.textMain, marginTop: 2 },
+  modalValueHighlight: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.primary, marginTop: 2 },
+  actionHeaderTitle: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: colors.textMain, marginTop: 14, marginBottom: 10 },
+  actionBtn: { marginBottom: 10 },
 });
