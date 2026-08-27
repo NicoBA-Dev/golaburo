@@ -10,15 +10,14 @@ export const authService = {
         return data;
     },
 
-    async register({ email, password, nombre, rubro = null }) {
+    async register({ email, password, full_name, phone }) {
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
                 data: {
-                    nombre,
-                    rubro,
-                    es_tecnico: Boolean(rubro),
+                    full_name, // Exactamente como lo espera el trigger de Supabase
+                    phone,     // Exactamente como lo espera el trigger de Supabase
                 },
             },
         });
@@ -31,7 +30,6 @@ export const authService = {
         if (error) throw error;
     },
 
-    // Función arreglada: ahora sí consulta a Supabase en lugar de devolver null
     async getCurrentSession() {
         const { data, error } = await supabase.auth.getSession();
         if (error) {

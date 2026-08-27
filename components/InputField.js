@@ -1,33 +1,41 @@
-import React, { useState } from 'react';
+import React, { forwardRef, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors } from '../theme/colors';
 import { fontSize, fontWeight, lineHeight } from '../theme/typography';
 
 /**
- * Campo de texto con label, manejo de error, estado de foco y,
- * opcionalmente, un botón para mostrar/ocultar la contraseña.
+ * Campo de texto con label, manejo de error, estado de foco,
+ * navegación entre campos por teclado (vía ref) y, opcionalmente,
+ * un botón para mostrar/ocultar la contraseña o un prefijo fijo
+ * (ej. "+591" para teléfonos).
  *
- * Props nuevas respecto a la versión anterior:
+ * Props:
  *  - error?: string        -> mensaje de error a mostrar bajo el input
  *  - onBlur?: () => void   -> útil para validar "on blur"
  *  - helperText?: string   -> texto de ayuda cuando no hay error
+ *  - prefix?: string       -> texto fijo no editable antes del input (ej. "+591")
  *  - maxLength?: number
  *  - autoCapitalize?: string
+ *  - ref                   -> forwardeado al TextInput, para .focus() desde el padre
  */
-export default function InputField({
-  label,
-  value,
-  onChangeText,
-  onBlur,
-  placeholder,
-  keyboardType = 'default',
-  secureTextEntry = false,
-  error,
-  helperText,
-  maxLength,
-  autoCapitalize = 'sentences',
-  ...rest
-}) {
+const InputField = forwardRef(function InputField(
+  {
+    label,
+    value,
+    onChangeText,
+    onBlur,
+    placeholder,
+    keyboardType = 'default',
+    secureTextEntry = false,
+    error,
+    helperText,
+    prefix,
+    maxLength,
+    autoCapitalize = 'sentences',
+    ...rest
+  },
+  ref
+) {
   const [isFocused, setIsFocused] = useState(false);
   const [isSecureVisible, setIsSecureVisible] = useState(false);
 
@@ -52,7 +60,15 @@ export default function InputField({
           hasError ? styles.inputWrapperError : null,
         ]}
       >
+        {prefix ? (
+          <View style={styles.prefixBox}>
+            <Text style={styles.prefixText}>{prefix}</Text>
+            <View style={styles.prefixDivider} />
+          </View>
+        ) : null}
+
         <TextInput
+          ref={ref}
           style={styles.input}
           value={value}
           onChangeText={onChangeText}
@@ -91,7 +107,9 @@ export default function InputField({
       ) : null}
     </View>
   );
-}
+});
+
+export default InputField;
 
 const styles = StyleSheet.create({
   container: {
@@ -122,6 +140,22 @@ const styles = StyleSheet.create({
   },
   inputWrapperError: {
     backgroundColor: colors.errorSoft,
+  },
+  prefixBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  prefixText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textMain,
+  },
+  prefixDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: colors.border,
+    marginLeft: 10,
   },
   input: {
     flex: 1,

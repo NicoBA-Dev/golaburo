@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,52 +16,85 @@ import { typography } from '../../theme/typography';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
 import { authService } from '../../services/authService';
-import { userService } from '../../services/userService';
+import { profileService } from '../../services/profileService';
 
 export default function ProfileScreen({ navigation }) {
+  const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState({
     nombre: '',
-    location: '',
+    location: 'Cochabamba, Bolivia',
     phone: '',
-    email: '',
     isTechnician: false,
   });
 
+  const [nombre, setNombre] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+
+  const [isEditingNombre, setIsEditingNombre] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
-  const [isEditingEmail, setIsEditingEmail] = useState(false);
+
+  // Nuevos estados de carga independientes para mejor UX
+  const [isSavingNombre, setIsSavingNombre] = useState(false);
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Cargar datos del JSON local
   useEffect(() => {
     const loadData = async () => {
-      const data = await userService.getUserProfile();
-      setUserData(data);
-      setPhone(data.phone);
-      setEmail(data.email);
+      try {
+        const session = await authService.getCurrentSession();
+        if (!session) return;
+
+        const currentUserId = session.user.id;
+        setUserId(currentUserId);
+        setEmail(session.user.email);
+
+        const profile = await profileService.getProfile(currentUserId);
+        const techProfile = await profileService.getTechnicalProfile(currentUserId);
+
+        // PROTECCIÓN AÑADIDA CON '?.'
+        setUserData({
+          nombre: profile?.full_name || '',
+          phone: profile?.phone || '',
+          isTechnician: !!techProfile,
+        });
+
+        setNombre(profile?.full_name || '');
+        setPhone(profile?.phone || '');
+
+      } catch (error) {
+        console.error("Error cargando perfil:", error);
+      }
     };
 
-    // Escucha el foco de la pantalla para refrescar los datos si volvió de registrarse como técnico
     const unsubscribe = navigation?.addListener('focus', loadData);
     return unsubscribe;
   }, [navigation]);
 
-  const handleSave = async () => {
-    setLoading(true);
+  // NUEVA FUNCIÓN: Guardado en línea instantáneo
+  const handleInlineSave = async (field, value) => {
+    if (!userId) return;
+
+    if (field === 'full_name') setIsSavingNombre(true);
+    if (field === 'phone') setIsSavingPhone(true);
+
     try {
-      const updatedJson = { phone, email };
-      await userService.updateUserProfile(updatedJson);
+      await profileService.updateProfile(userId, { [field]: value });
 
-      setIsEditingPhone(false);
-      setIsEditingEmail(false);
-      setUserData((prev) => ({ ...prev, ...updatedJson }));
+      setUserData((prev) => ({
+        ...prev,
+        [field === 'full_name' ? 'nombre' : 'phone']: value
+      }));
 
-      Alert.alert('Éxito', 'Cambios guardados en el registro JSON local.');
+      // Apagamos el modo edición solo si tuvo éxito
+      if (field === 'full_name') setIsEditingNombre(false);
+      if (field === 'phone') setIsEditingPhone(false);
+
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron guardar los cambios.');
+      Alert.alert('Error', 'No se pudo actualizar el dato en el servidor.');
     } finally {
-      setLoading(false);
+      setIsSavingNombre(false);
+      setIsSavingPhone(false);
     }
   };
 
@@ -85,7 +119,6 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* TopBar Superior */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation?.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.textMain} />
@@ -94,17 +127,50 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Avatar e Identidad */}
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
             <Ionicons name="person-outline" size={40} color={colors.textMuted} />
-            <Text style={styles.avatarText}>User Avatar</Text>
           </View>
           <Text style={styles.name}>{userData.nombre || 'Cargando...'}</Text>
-          <Text style={styles.location}>{userData.location || 'Cochabamba, Bolivia'}</Text>
+          <Text style={styles.location}>{userData.location}</Text>
         </View>
 
-        {/* Campo Teléfono */}
+        {/* Campo Nombre con Auto-Guardado */}
+        <View style={styles.fieldWrapper}>
+          <View style={styles.inputContainer}>
+            <InputField
+              label="Nombre Completo"
+              value={nombre}
+              onChangeText={setNombre}
+              editable={isEditingNombre}
+            />
+          </View>
+          <TouchableOpacity
+            disabled={isSavingNombre}
+            style={[styles.editIconBtn, isEditingNombre && styles.editIconBtnActive]}
+            onPress={() => {
+              if (isEditingNombre) {
+                // Si estaba editando, al tocar guarda los datos
+                handleInlineSave('full_name', nombre);
+              } else {
+                // Si no estaba editando, activa la edición
+                setIsEditingNombre(true);
+              }
+            }}
+          >
+            {isSavingNombre ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons
+                name={isEditingNombre ? 'checkmark' : 'pencil-outline'}
+                size={20}
+                color={isEditingNombre ? colors.primary : colors.textMain}
+              />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Campo Teléfono con Auto-Guardado */}
         <View style={styles.fieldWrapper}>
           <View style={styles.inputContainer}>
             <InputField
@@ -116,42 +182,41 @@ export default function ProfileScreen({ navigation }) {
             />
           </View>
           <TouchableOpacity
+            disabled={isSavingPhone}
             style={[styles.editIconBtn, isEditingPhone && styles.editIconBtnActive]}
-            onPress={() => setIsEditingPhone((prev) => !prev)}
+            onPress={() => {
+              if (isEditingPhone) {
+                handleInlineSave('phone', phone);
+              } else {
+                setIsEditingPhone(true);
+              }
+            }}
           >
-            <Ionicons
-              name={isEditingPhone ? 'checkmark' : 'pencil-outline'}
-              size={20}
-              color={isEditingPhone ? colors.primary : colors.textMain}
-            />
+            {isSavingPhone ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons
+                name={isEditingPhone ? 'checkmark' : 'pencil-outline'}
+                size={20}
+                color={isEditingPhone ? colors.primary : colors.textMain}
+              />
+            )}
           </TouchableOpacity>
         </View>
 
-        {/* Campo Email */}
+        {/* Campo Email (Solo Lectura) */}
         <View style={styles.fieldWrapper}>
           <View style={styles.inputContainer}>
             <InputField
-              label="Email"
+              label="Email (Cuenta de acceso)"
               value={email}
-              onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
-              editable={isEditingEmail}
+              editable={false}
             />
           </View>
-          <TouchableOpacity
-            style={[styles.editIconBtn, isEditingEmail && styles.editIconBtnActive]}
-            onPress={() => setIsEditingEmail((prev) => !prev)}
-          >
-            <Ionicons
-              name={isEditingEmail ? 'checkmark' : 'pencil-outline'}
-              size={20}
-              color={isEditingEmail ? colors.primary : colors.textMain}
-            />
-          </TouchableOpacity>
         </View>
 
-        {/* Sección Mis Direcciones */}
         <TouchableOpacity style={styles.sectionCard} activeOpacity={0.8}>
           <Ionicons name="location-outline" size={32} color={colors.textMain} style={styles.cardIcon} />
           <View style={styles.cardTextContainer}>
@@ -161,18 +226,13 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </TouchableOpacity>
 
-        {/* =========================================================================
-            [PRUEBAS] Botón para convertirse en técnico (SIEMPRE VISIBLE).
-            TODO: Para la versión final en producción, se puede volver a condicionar.
-           ========================================================================= */}
-        <PrimaryButton
-          title="CONVERTIRSE EN TÉCNICO"
-          onPress={handleConvertToTechnician}
-          style={styles.btnPrimary}
-        />
-
-        {/* Botón exclusivo que aparece si se registró como TÉCNICO */}
-        {userData.isTechnician && (
+        {!userData.isTechnician ? (
+          <PrimaryButton
+            title="CONVERTIRSE EN TÉCNICO"
+            onPress={handleConvertToTechnician}
+            style={styles.btnPrimary}
+          />
+        ) : (
           <TouchableOpacity
             style={styles.technicianPanelBtn}
             onPress={handleGoToTechnicianPanel}
@@ -183,16 +243,6 @@ export default function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
-        {/* Botón Guardar Cambios */}
-        <PrimaryButton
-          title="GUARDAR CAMBIOS"
-          onPress={handleSave}
-          loading={loading}
-          variant="outline"
-          style={styles.btnSecondary}
-        />
-
-        {/* Botón Cerrar Sesión */}
         <TouchableOpacity
           style={styles.logoutBtn}
           onPress={handleLogout}
@@ -208,142 +258,27 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  backBtn: {
-    padding: 4,
-    marginRight: 12,
-  },
-  topBarTitle: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textMain,
-  },
-  container: {
-    padding: 16,
-    paddingBottom: 30,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  avatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: colors.textMuted,
-    borderStyle: 'dashed',
-    backgroundColor: colors.disabledBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  avatarText: {
-    fontSize: typography.fontSize.xs,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  name: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textMain,
-    marginBottom: 2,
-  },
-  location: {
-    fontSize: typography.fontSize.sm,
-    color: colors.textMuted,
-  },
-  fieldWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  inputContainer: {
-    flex: 1,
-  },
-  editIconBtn: {
-    padding: 10,
-    marginBottom: 14,
-    marginLeft: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  editIconBtnActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  sectionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-  },
-  cardIcon: {
-    marginRight: 14,
-  },
-  cardTextContainer: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textMain,
-    marginBottom: 2,
-  },
-  cardDetail: {
-    fontSize: typography.fontSize.sm,
-    color: colors.textMuted,
-  },
-  btnPrimary: {
-    marginBottom: 10,
-  },
-  technicianPanelBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-  },
-  technicianPanelBtnText: {
-    color: colors.white,
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  btnSecondary: {
-    marginBottom: 16,
-  },
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.errorSoft,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  logoutText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.error,
-    marginLeft: 6,
-    fontWeight: typography.fontWeight.semibold,
-  },
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.surface },
+  backBtn: { padding: 4, marginRight: 12 },
+  topBarTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.textMain },
+  container: { padding: 16, paddingBottom: 30 },
+  header: { alignItems: 'center', marginBottom: 20 },
+  avatarContainer: { width: 100, height: 100, borderRadius: 8, borderWidth: 1.5, borderColor: colors.textMuted, borderStyle: 'dashed', backgroundColor: colors.disabledBg, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  name: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.textMain, marginBottom: 2 },
+  location: { fontSize: typography.fontSize.sm, color: colors.textMuted },
+  fieldWrapper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  inputContainer: { flex: 1 },
+  editIconBtn: { padding: 10, marginBottom: 14, marginLeft: 8, borderRadius: 8, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  editIconBtnActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  sectionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border, borderRadius: 12, padding: 14, marginBottom: 16 },
+  cardIcon: { marginRight: 14 },
+  cardTextContainer: { flex: 1 },
+  cardTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.textMain, marginBottom: 2 },
+  cardDetail: { fontSize: typography.fontSize.sm, color: colors.textMuted },
+  btnPrimary: { marginBottom: 10 },
+  technicianPanelBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, paddingVertical: 15, borderRadius: 12, marginBottom: 10 },
+  technicianPanelBtnText: { color: colors.white, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.semibold },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.errorSoft, paddingVertical: 12, borderRadius: 12, marginTop: 10 },
+  logoutText: { fontSize: typography.fontSize.sm, color: colors.error, marginLeft: 6, fontWeight: typography.fontWeight.semibold },
 });

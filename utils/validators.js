@@ -42,13 +42,24 @@ export function validateName(value) {
     return null;
 }
 
+// Valida el número LOCAL boliviano (8 dígitos, sin +591) porque el
+// prefijo se muestra fijo en el input y el usuario solo escribe el
+// resto. Úsala junto con `formatBolivianPhoneInput` en el onChangeText.
 export function validatePhone(value) {
     const v = (value || '').replace(/\s+/g, '');
     if (!v) return 'El teléfono es obligatorio.';
-    // Bolivia: 8 dígitos que empiezan en 6 o 7, con o sin +591
-    const phoneRegex = /^(\+591)?[67]\d{7}$/;
+    if (v.length < 8) return 'Debe tener 8 dígitos.';
+    // Bolivia: celulares empiezan en 6 (Entel/Viva) o 7 (Tigo)
+    const phoneRegex = /^[67]\d{7}$/;
     if (!phoneRegex.test(v)) return 'Ingresa un número boliviano válido (ej. 700 00000).';
     return null;
+}
+
+// Limpia lo que el usuario escribe en el campo de teléfono: solo
+// dígitos y máximo 8 caracteres (para que sea imposible ingresar un
+// número que no sea boliviano, ya que el prefijo +591 va fijo).
+export function formatBolivianPhoneInput(value) {
+    return (value || '').replace(/\D/g, '').slice(0, 8);
 }
 
 // Fuerza de contraseña simple para feedback visual (0-3)

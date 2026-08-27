@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { fontSize, fontWeight, lineHeight } from '../../theme/typography';
 import InputField from '../../components/InputField';
@@ -21,6 +22,7 @@ import {
   validatePassword,
   validateConfirmPassword,
   validatePhone,
+  formatBolivianPhoneInput,
   getPasswordStrength,
 } from '../../utils/validators';
 
@@ -32,7 +34,7 @@ export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [telefono, setTelefono] = useState('');
+  const [telefono, setTelefono] = useState(''); // solo el número local, sin +591
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -45,6 +47,12 @@ export default function RegisterScreen({ navigation }) {
     terms: null,
   });
   const [formError, setFormError] = useState('');
+
+  // Refs para pasar de un campo a otro con la tecla "Siguiente" del teclado
+  const emailRef = useRef(null);
+  const telefonoRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmRef = useRef(null);
 
   const strength = getPasswordStrength(password);
 
@@ -84,12 +92,14 @@ export default function RegisterScreen({ navigation }) {
       await authService.register({
         email: email.trim(),
         password,
-        nombre: nombre.trim(),
-        telefono: telefono.trim(),
+        full_name: nombre.trim(),
+        phone: `+591${telefono}`,
       });
       navigation.navigate('Login', { registered: true });
     } catch (err) {
-      setFormError('Hubo un problema con el registro. Intenta nuevamente.');
+      // ESTO IMPRIMIRÁ EL MOTIVO EXACTO DEL RECHAZO EN TU CONSOLA
+      console.log("ERROR DE SUPABASE:", err);
+      setFormError(err.message || 'Hubo un problema con el registro.');
     } finally {
       setLoading(false);
     }
@@ -122,11 +132,15 @@ export default function RegisterScreen({ navigation }) {
           <View style={styles.card}>
             {formError ? (
               <View style={styles.formErrorBox}>
+                <Ionicons name="alert-circle" size={16} color={colors.error} />
                 <Text style={styles.formErrorText}>{formError}</Text>
               </View>
             ) : null}
 
             <View style={styles.cardBody}>
+              {/* Sección: datos personales */}
+              <Text style={styles.sectionLabel}>Tus datos</Text>
+
               <InputField
                 label="Nombre completo"
                 value={nombre}
@@ -137,9 +151,12 @@ export default function RegisterScreen({ navigation }) {
                 onBlur={() => validateField('nombre', nombre)}
                 placeholder="Juan Pérez"
                 error={errors.nombre}
+                returnKeyType="next"
+                onSubmitEditing={() => emailRef.current?.focus()}
               />
 
               <InputField
+                ref={emailRef}
                 label="Correo electrónico"
                 value={email}
                 onChangeText={(text) => {
@@ -151,23 +168,35 @@ export default function RegisterScreen({ navigation }) {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 error={errors.email}
+                returnKeyType="next"
+                onSubmitEditing={() => telefonoRef.current?.focus()}
               />
 
               <InputField
+                ref={telefonoRef}
                 label="Número de teléfono"
                 value={telefono}
                 onChangeText={(text) => {
-                  setTelefono(text);
-                  if (errors.telefono) validateField('telefono', text);
+                  const digitsOnly = formatBolivianPhoneInput(text);
+                  setTelefono(digitsOnly);
+                  if (errors.telefono) validateField('telefono', digitsOnly);
                 }}
                 onBlur={() => validateField('telefono', telefono)}
                 placeholder="700 00000"
-                keyboardType="phone-pad"
+                keyboardType="number-pad"
+                prefix="🇧🇴 +591"
+                maxLength={8}
                 error={errors.telefono}
-                helperText={!errors.telefono ? 'Ej: 700 00000 o +591 700 00000' : undefined}
+                helperText={!errors.telefono ? 'Solo números de Bolivia, 8 dígitos.' : undefined}
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
               />
 
+              {/* Sección: seguridad */}
+              <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>Seguridad</Text>
+
               <InputField
+                ref={passwordRef}
                 label="Contraseña"
                 value={password}
                 onChangeText={(text) => {
@@ -181,6 +210,8 @@ export default function RegisterScreen({ navigation }) {
                 placeholder="••••••••"
                 secureTextEntry
                 error={errors.password}
+                returnKeyType="next"
+                onSubmitEditing={() => confirmRef.current?.focus()}
               />
 
               {password && !errors.password ? (
@@ -204,6 +235,7 @@ export default function RegisterScreen({ navigation }) {
               ) : null}
 
               <InputField
+                ref={confirmRef}
                 label="Confirmar contraseña"
                 value={confirmPassword}
                 onChangeText={(text) => {
@@ -214,6 +246,8 @@ export default function RegisterScreen({ navigation }) {
                 placeholder="••••••••"
                 secureTextEntry
                 error={errors.confirmPassword}
+                returnKeyType="done"
+                onSubmitEditing={handleRegister}
               />
 
               <TouchableOpacity
@@ -240,7 +274,7 @@ export default function RegisterScreen({ navigation }) {
               {errors.terms ? <Text style={styles.errorText}>{errors.terms}</Text> : null}
 
               <PrimaryButton
-                title={loading ? 'Registrando...' : 'Regístrate'}
+                title={loading ? 'Creando cuenta...' : 'Crear cuenta'}
                 onPress={handleRegister}
                 loading={loading}
                 style={styles.btn}
@@ -301,19 +335,31 @@ const styles = StyleSheet.create({
   },
   cardBody: { paddingHorizontal: 20, paddingTop: 22 },
   formErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.errorSoft,
     paddingVertical: 10,
     paddingHorizontal: 16,
     marginHorizontal: 20,
     marginTop: 20,
     borderRadius: 10,
+    gap: 8,
   },
   formErrorText: {
+    flex: 1,
     color: colors.error,
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
-    textAlign: 'center',
   },
+  sectionLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  sectionLabelSpaced: { marginTop: 6 },
   strengthRow: {
     flexDirection: 'row',
     alignItems: 'center',

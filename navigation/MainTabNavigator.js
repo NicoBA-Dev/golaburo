@@ -77,6 +77,7 @@ function ProfileStackNavigator() {
         <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
             <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
             <ProfileStack.Screen name="RegistroTecnicoScreen" component={RegistroTecnicoScreen} />
+
             <ProfileStack.Screen name="PerfilTecnicoScreen" component={PerfilTecnicoScreen} />
         </ProfileStack.Navigator>
     );
