@@ -4,9 +4,10 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,197 +15,206 @@ import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
-import { userService } from '../../services/userService';
+import { technicianService } from '../../services/technicianService';
+
+// Mapa de conversión de categorías a profesiones
+const PROFESSION_FORMATTER = {
+  'Pintura': 'Pintor',
+  'Plomería': 'Plomero',
+  'Electricidad': 'Electricista',
+  'Cerrajería': 'Cerrahero',
+  'Reparación de electrodomésticos': 'Técnico de Electrodomésticos',
+};
 
 export default function PerfilTecnicoScreen({ navigation }) {
-  const [techData, setTechData] = useState({
-    nombre: 'Juan Pérez',
-    location: 'Cochabamba, Bolivia',
-    rating: '4.8 / 5',
-    experience: '1 año',
-    specialty: 'Plomería',
-    days: 'Lunes a Viernes',
-    schedule: '08:00 AM - 12:00 PM',
-  });
+  const [techProfile, setTechProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const [isEditingExp, setIsEditingExp] = useState(false);
-  const [isEditingSpec, setIsEditingSpec] = useState(false);
-  const [isEditingDays, setIsEditingDays] = useState(false);
-  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
-  const [loading, setLoading] = useState(false);
+  // Campos
+  const [experience, setExperience] = useState('1');
+  const [rate, setRate] = useState('0');
+  const [bio, setBio] = useState('');
+
+  // Estados de edición e inline saving
+  const [isEditingRate, setIsEditingRate] = useState(false);
+  const [isEditingBio, setIsEditingBio] = useState(false);
+
+  const [isSavingRate, setIsSavingRate] = useState(false);
+  const [isSavingBio, setIsSavingBio] = useState(false);
 
   useEffect(() => {
-    const loadProfile = async () => {
-      const user = await userService.getUserProfile();
-      if (user?.technicianData) {
-        setTechData((prev) => ({
-          ...prev,
-          nombre: user.nombre || prev.nombre,
-          location: user.location || prev.location,
-          experience: user.technicianData.experience || prev.experience,
-          specialty: user.technicianData.specialty || prev.specialty,
-          days: user.technicianData.days || prev.days,
-          schedule: user.technicianData.schedule || prev.schedule,
-        }));
-      }
-    };
-    loadProfile();
+    fetchProfile();
   }, []);
 
-  const handleSaveTechField = async () => {
-    setLoading(true);
+  const fetchProfile = async () => {
     try {
-      await userService.registerTechnician({
-        experience: techData.experience,
-        specialty: techData.specialty,
-        days: techData.days,
-        schedule: techData.schedule,
-      });
-
-      setIsEditingExp(false);
-      setIsEditingSpec(false);
-      setIsEditingDays(false);
-      setIsEditingSchedule(false);
-
-      Alert.alert('Éxito', 'Información del perfil técnico actualizada.');
+      setLoading(true);
+      const data = await technicianService.getTechnicianProfile();
+      if (data) {
+        setTechProfile(data);
+        setExperience(String(data.years_experience || 1));
+        setRate(String(data.base_rate || 0));
+        setBio(data.bio || '');
+      }
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron guardar los cambios.');
+      Alert.alert('Error', 'No se pudo cargar el perfil técnico.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleInlineSave = async (field, value) => {
+    if (!techProfile) return;
+
+    if (field === 'rate') setIsSavingRate(true);
+    if (field === 'bio') setIsSavingBio(true);
+
+    try {
+      const updatedRate = field === 'rate' ? parseFloat(value) : parseFloat(rate);
+      const updatedBio = field === 'bio' ? value : bio;
+
+      await technicianService.registerTechnician({
+        categoryId: techProfile.category_id,
+        yearsExperience: techProfile.years_experience,
+        bio: updatedBio,
+        baseRate: updatedRate,
+        coverageZones: techProfile.coverage_zones,
+      });
+
+      if (field === 'rate') setIsEditingRate(false);
+      if (field === 'bio') setIsEditingBio(false);
+
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron guardar los cambios en Supabase.');
+    } finally {
+      setIsSavingRate(false);
+      setIsSavingBio(false);
+    }
+  };
+
+  const formatProfession = (categoryName) => {
+    if (!categoryName) return 'Técnico';
+    return PROFESSION_FORMATTER[categoryName] || categoryName;
   };
 
   const handleReturnToUserProfile = () => {
     navigation?.navigate('Main', { screen: 'Perfil' });
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* TopBar Limpia */}
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>Perfil de Técnico</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Calificación Global */}
         <View style={styles.ratingContainer}>
           <Text style={styles.ratingTitle}>
-            Calificación Global: <Text style={styles.ratingValue}>{techData.rating}</Text>
+            Calificación Global: <Text style={styles.ratingValue}>{techProfile?.avg_rating || 0} / 5</Text>
           </Text>
           <View style={styles.starsRow}>
-            {[1, 2, 3, 4].map((star) => (
-              <Ionicons key={star} name="star" size={28} color={colors.warning} />
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Ionicons
+                key={star}
+                name={star <= Math.round(techProfile?.avg_rating || 0) ? 'star' : 'star-outline'}
+                size={24}
+                color={colors.warning}
+              />
             ))}
-            <Ionicons name="star-half" size={28} color={colors.warning} />
           </View>
         </View>
 
+        {/* Avatar e Identidad con Profesión Formateada */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
-            <Ionicons name="person-outline" size={42} color={colors.textMuted} />
-            <TouchableOpacity style={styles.avatarEditBadge}>
-              <Ionicons name="pencil" size={12} color={colors.white} />
+            <Ionicons name="person-outline" size={42} color={colors.primary} />
+          </View>
+          <Text style={styles.userName}>{techProfile?.profiles?.full_name || 'Técnico Registrado'}</Text>
+          <Text style={styles.professionText}>{formatProfession(techProfile?.categories?.name)}</Text>
+        </View>
+
+        {/* SECCIÓN DATOS TÉCNICOS */}
+        <Text style={styles.sectionTitle}>Información de Técnico</Text>
+        <View style={styles.cardSection}>
+
+          {/* Campo: Años de Experiencia (No Editable) */}
+          <View style={styles.fieldWrapper}>
+            <View style={styles.inputContainer}>
+              <InputField
+                label="Años de Experiencia (No modificable)"
+                value={`${experience} ${parseInt(experience, 10) === 1 ? 'año' : 'años'}`}
+                editable={false}
+              />
+            </View>
+          </View>
+
+          {/* Campo: Tarifa Base por Hora */}
+          <View style={styles.fieldWrapper}>
+            <View style={styles.inputContainer}>
+              <InputField
+                label="Tarifa Base por Hora (Bs)"
+                value={rate}
+                onChangeText={setRate}
+                keyboardType="numeric"
+                editable={isEditingRate}
+              />
+            </View>
+            <TouchableOpacity
+              disabled={isSavingRate}
+              style={[styles.editIconBtn, isEditingRate && styles.editIconBtnActive]}
+              onPress={() => isEditingRate ? handleInlineSave('rate', rate) : setIsEditingRate(true)}
+            >
+              {isSavingRate ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons
+                  name={isEditingRate ? 'checkmark' : 'pencil-outline'}
+                  size={20}
+                  color={isEditingRate ? colors.primary : colors.textMain}
+                />
+              )}
             </TouchableOpacity>
           </View>
-          <View style={styles.nameRow}>
-            <Text style={styles.userName}>{techData.nombre}</Text>
-            <Ionicons name="pencil-outline" size={18} color={colors.textMain} style={{ marginLeft: 6 }} />
+
+          {/* Campo: Biografía / Descripción */}
+          <View style={styles.fieldWrapper}>
+            <View style={styles.inputContainer}>
+              <InputField
+                label="Biografía / Descripción"
+                value={bio}
+                onChangeText={setBio}
+                editable={isEditingBio}
+              />
+            </View>
+            <TouchableOpacity
+              disabled={isSavingBio}
+              style={[styles.editIconBtn, isEditingBio && styles.editIconBtnActive]}
+              onPress={() => isEditingBio ? handleInlineSave('bio', bio) : setIsEditingBio(true)}
+            >
+              {isSavingBio ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons
+                  name={isEditingBio ? 'checkmark' : 'pencil-outline'}
+                  size={20}
+                  color={isEditingBio ? colors.primary : colors.textMain}
+                />
+              )}
+            </TouchableOpacity>
           </View>
-          <Text style={styles.userLocation}>{techData.location}</Text>
+
         </View>
 
-        <View style={styles.fieldRow}>
-          <View style={styles.inputFlex}>
-            <InputField
-              label="Años de Experiencia"
-              value={techData.experience}
-              onChangeText={(val) => setTechData({ ...techData, experience: val })}
-              editable={isEditingExp}
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.editBtn, isEditingExp && styles.editBtnActive]}
-            onPress={() => setIsEditingExp((prev) => !prev)}
-          >
-            <Ionicons
-              name={isEditingExp ? 'checkmark' : 'pencil-outline'}
-              size={18}
-              color={isEditingExp ? colors.primary : colors.textMain}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.fieldRow}>
-          <View style={styles.inputFlex}>
-            <InputField
-              label="Área de Especialidad"
-              value={techData.specialty}
-              onChangeText={(val) => setTechData({ ...techData, specialty: val })}
-              editable={isEditingSpec}
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.editBtn, isEditingSpec && styles.editBtnActive]}
-            onPress={() => setIsEditingSpec((prev) => !prev)}
-          >
-            <Ionicons
-              name={isEditingSpec ? 'checkmark' : 'pencil-outline'}
-              size={18}
-              color={isEditingSpec ? colors.primary : colors.textMain}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.fieldRow}>
-          <View style={styles.inputFlex}>
-            <InputField
-              label="Días Disponibles"
-              value={techData.days}
-              onChangeText={(val) => setTechData({ ...techData, days: val })}
-              editable={isEditingDays}
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.editBtn, isEditingDays && styles.editBtnActive]}
-            onPress={() => setIsEditingDays((prev) => !prev)}
-          >
-            <Ionicons
-              name={isEditingDays ? 'checkmark' : 'pencil-outline'}
-              size={18}
-              color={isEditingDays ? colors.primary : colors.textMain}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.fieldRow}>
-          <View style={styles.inputFlex}>
-            <InputField
-              label="Horas Disponibles"
-              value={techData.schedule}
-              onChangeText={(val) => setTechData({ ...techData, schedule: val })}
-              editable={isEditingSchedule}
-            />
-          </View>
-          <TouchableOpacity
-            style={[styles.editBtn, isEditingSchedule && styles.editBtnActive]}
-            onPress={() => setIsEditingSchedule((prev) => !prev)}
-          >
-            <Ionicons
-              name={isEditingSchedule ? 'checkmark' : 'pencil-outline'}
-              size={18}
-              color={isEditingSchedule ? colors.primary : colors.textMain}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {(isEditingExp || isEditingSpec || isEditingDays || isEditingSchedule) && (
-          <PrimaryButton
-            title="GUARDAR CAMBIOS"
-            onPress={handleSaveTechField}
-            loading={loading}
-            style={styles.saveBtn}
-          />
-        )}
-
+        {/* Botón de Redirección al Perfil de Usuario */}
         <PrimaryButton
           title="Dirigir al Perfil de Usuario"
           onPress={handleReturnToUserProfile}
@@ -238,23 +248,39 @@ const styles = StyleSheet.create({
   avatarContainer: {
     width: 90,
     height: 90,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: colors.textMuted,
-    backgroundColor: colors.disabledBg,
+    borderRadius: 45,
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
-    position: 'relative',
   },
-  avatarEditBadge: { position: 'absolute', right: -4, bottom: -4, backgroundColor: colors.black, padding: 6, borderRadius: 12 },
-  nameRow: { flexDirection: 'row', alignItems: 'center' },
   userName: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.textMain },
-  userLocation: { fontSize: typography.fontSize.sm, color: colors.textMuted, marginTop: 2 },
-  fieldRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  inputFlex: { flex: 1 },
-  editBtn: { padding: 10, marginBottom: 14, marginLeft: 8, borderRadius: 8, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
-  editBtnActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
-  saveBtn: { marginBottom: 12 },
-  returnBtn: { marginTop: 8, marginBottom: 10 },
+  professionText: { fontSize: typography.fontSize.md, color: colors.primary, marginTop: 2, fontWeight: typography.fontWeight.bold },
+  sectionTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.textMuted, marginBottom: 8, marginLeft: 4 },
+  cardSection: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 2,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  fieldWrapper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  inputContainer: { flex: 1 },
+  editIconBtn: {
+    padding: 10,
+    marginBottom: 16,
+    marginLeft: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  editIconBtnActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  returnBtn: { marginTop: 4, marginBottom: 10 },
 });
