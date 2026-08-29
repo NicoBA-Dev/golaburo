@@ -1,122 +1,71 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-  Switch,
-} from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Switch, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { colors } from '../../theme/colors';
-import { typography } from '../../theme/typography';
-import InputField from '../../components/InputField';
-import PrimaryButton from '../../components/PrimaryButton';
 import { authService } from '../../services/authService';
 import { profileService } from '../../services/profileService';
 import { storageService } from '../../services/storageService';
 
 export default function ProfileScreen({ navigation }) {
-  const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState({
-    nombre: '',
-    location: 'Cochabamba, Bolivia',
+    nombre: 'Cargando...',
     phone: '',
+    email: '',
+    avatarUrl: null,
     isTechnician: false,
   });
 
-  const [nombre, setNombre] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-
-  const [isEditingNombre, setIsEditingNombre] = useState(false);
-  const [isEditingPhone, setIsEditingPhone] = useState(false);
-
-  const [isSavingNombre, setIsSavingNombre] = useState(false);
-  const [isSavingPhone, setIsSavingPhone] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const session = await authService.getCurrentSession();
-        if (!session) return;
+  // useFocusEffect recarga los datos cada vez que la pantalla se vuelve a mostrar
+  // (Ideal para cuando regresas de EditProfileScreen)
+  useFocusEffect(
+    useCallback(() => {
+      const loadData = async () => {
+        try {
+          const session = await authService.getCurrentSession();
+          if (!session) return;
 
-        const currentUserId = session.user.id;
-        const currentEmail = session.user.email;
-        setUserId(currentUserId);
-        setEmail(currentEmail);
+          const currentUserId = session.user.id;
+          const currentEmail = session.user.email;
 
-        const profile = await profileService.getProfile(currentUserId);
-        const techProfile = await profileService.getTechnicalProfile(currentUserId);
+          const profile = await profileService.getProfile(currentUserId);
+          const techProfile = await profileService.getTechnicalProfile(currentUserId);
 
-        setUserData({
-          nombre: profile?.full_name || 'Usuario',
-          phone: profile?.phone || '',
-          isTechnician: !!techProfile,
-        });
+          setUserData({
+            nombre: profile?.full_name || 'Usuario Nuevo',
+            phone: profile?.phone || 'Sin número',
+            email: currentEmail,
+            avatarUrl: profile?.avatar_url || null,
+            isTechnician: !!techProfile,
+          });
 
-        setNombre(profile?.full_name || '');
-        setPhone(profile?.phone || '');
+          const localPrefs = await storageService.getLocalPreferences();
+          setNotificationsEnabled(localPrefs.notificationsEnabled);
+        } catch (error) {
+          console.error('Error cargando perfil:', error);
+        }
+      };
 
-        const localPrefs = await storageService.getLocalPreferences();
-        setNotificationsEnabled(localPrefs.notificationsEnabled);
-
-        await storageService.saveLocalPreferences(currentEmail, localPrefs.notificationsEnabled);
-      } catch (error) {
-        console.error('Error cargando perfil:', error);
-      }
-    };
-
-    const unsubscribe = navigation?.addListener('focus', loadData);
-    return unsubscribe;
-  }, [navigation]);
-
-  const handleInlineSave = async (field, value) => {
-    if (!userId) return;
-
-    if (field === 'full_name') setIsSavingNombre(true);
-    if (field === 'phone') setIsSavingPhone(true);
-
-    try {
-      await profileService.updateProfile(userId, { [field]: value });
-
-      setUserData((prev) => ({
-        ...prev,
-        [field === 'full_name' ? 'nombre' : 'phone']: value,
-      }));
-
-      if (field === 'full_name') setIsEditingNombre(false);
-      if (field === 'phone') setIsEditingPhone(false);
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo actualizar el dato en el servidor.');
-    } finally {
-      setIsSavingNombre(false);
-      setIsSavingPhone(false);
-    }
-  };
+      loadData();
+    }, [])
+  );
 
   const handleToggleNotifications = async (value) => {
     setNotificationsEnabled(value);
-    await storageService.saveLocalPreferences(email, value);
+    await storageService.saveLocalPreferences(userData.email, value);
   };
 
   const handleClearLocalData = async () => {
     const success = await storageService.clearLocalPreferences();
     if (success) {
       setNotificationsEnabled(false);
-      Alert.alert('Datos eliminados', 'Tus preferencias locales han sido borradas del dispositivo.');
+      Alert.alert('Datos eliminados', 'Tus preferencias locales han sido borradas.');
     }
   };
-
-  const handleConvertToTechnician = () => navigation?.navigate('RegistroTecnicoScreen');
-  const handleGoToTechnicianPanel = () => navigation?.navigate('TecnicoPanel');
 
   const handleLogout = async () => {
     try {
@@ -133,94 +82,55 @@ export default function ProfileScreen({ navigation }) {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation?.goBack()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={colors.textMain} />
+          <Ionicons name="chevron-back" size={26} color={colors.textMain} />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Mi Perfil</Text>
+        <Text style={styles.topBarTitle}>Mi Cuenta</Text>
+        <View style={{ width: 34 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+
+        {/* Cabecera del Perfil */}
         <View style={styles.header}>
           <View style={styles.avatarContainer}>
-            <Ionicons name="person-outline" size={40} color={colors.primary} />
+            {userData.avatarUrl ? (
+              <Image source={{ uri: userData.avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={50} color={colors.primarySoft} />
+            )}
           </View>
+
           <Text style={styles.name}>{userData.nombre}</Text>
-          <Text style={styles.location}>{userData.location}</Text>
+          <Text style={styles.emailText}>{userData.email}</Text>
+
+          <TouchableOpacity
+            style={styles.editProfileBtn}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('EditProfile')}
+          >
+            <Ionicons name="pencil" size={16} color={colors.white} style={{ marginRight: 6 }} />
+            <Text style={styles.editProfileText}>Editar Perfil</Text>
+          </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Datos Personales</Text>
+        {/* Tarjeta de Resumen de Datos */}
+        <Text style={styles.sectionTitle}>Datos de Contacto</Text>
         <View style={styles.cardSection}>
-          <View style={styles.fieldWrapper}>
-            <View style={styles.inputContainer}>
-              <InputField
-                label="Nombre Completo"
-                value={nombre}
-                onChangeText={setNombre}
-                editable={isEditingNombre}
-              />
-            </View>
-            <TouchableOpacity
-              disabled={isSavingNombre}
-              style={[styles.editIconBtn, isEditingNombre && styles.editIconBtnActive]}
-              onPress={() => (isEditingNombre ? handleInlineSave('full_name', nombre) : setIsEditingNombre(true))}
-            >
-              {isSavingNombre ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Ionicons
-                  name={isEditingNombre ? 'checkmark' : 'pencil-outline'}
-                  size={20}
-                  color={isEditingNombre ? colors.primary : colors.textMain}
-                />
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.fieldWrapper}>
-            <View style={styles.inputContainer}>
-              <InputField
-                label="Teléfono"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                editable={isEditingPhone}
-              />
-            </View>
-            <TouchableOpacity
-              disabled={isSavingPhone}
-              style={[styles.editIconBtn, isEditingPhone && styles.editIconBtnActive]}
-              onPress={() => (isEditingPhone ? handleInlineSave('phone', phone) : setIsEditingPhone(true))}
-            >
-              {isSavingPhone ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Ionicons
-                  name={isEditingPhone ? 'checkmark' : 'pencil-outline'}
-                  size={20}
-                  color={isEditingPhone ? colors.primary : colors.textMain}
-                />
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.fieldWrapper}>
-            <View style={styles.inputContainer}>
-              <InputField
-                label="Email (Cuenta de acceso)"
-                value={email}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                editable={false}
-              />
-            </View>
+          <View style={styles.infoRow}>
+            <Ionicons name="call-outline" size={22} color={colors.textMuted} />
+            <Text style={styles.infoText}>{userData.phone}</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Preferencias de la App</Text>
+        {/* Preferencias */}
+        <Text style={styles.sectionTitle}>Ajustes de Aplicación</Text>
         <View style={styles.cardSection}>
           <View style={styles.preferenceRow}>
             <View style={styles.preferenceTextContainer}>
-              <Ionicons name="notifications-outline" size={22} color={colors.textMain} />
-              <Text style={styles.preferenceText}>Recibir notificaciones</Text>
+              <View style={styles.iconBox}>
+                <Ionicons name="notifications" size={20} color={colors.primary} />
+              </View>
+              <Text style={styles.preferenceText}>Notificaciones Push</Text>
             </View>
             <Switch
               value={notificationsEnabled}
@@ -231,38 +141,52 @@ export default function ProfileScreen({ navigation }) {
           </View>
 
           <TouchableOpacity style={styles.clearDataBtn} onPress={handleClearLocalData}>
-            <Ionicons name="trash-outline" size={18} color={colors.error} />
-            <Text style={styles.clearDataText}>Borrar preferencias locales</Text>
+            <View style={[styles.iconBox, { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons name="trash" size={20} color={colors.error} />
+            </View>
+            <Text style={styles.clearDataText}>Borrar caché local</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Modo Trabajador</Text>
-        {!userData.isTechnician ? (
-          <PrimaryButton
-            title="CONVERTIRSE EN TÉCNICO"
-            onPress={handleConvertToTechnician}
-            style={styles.btnPrimary}
-          />
-        ) : (
-          <TouchableOpacity
-            style={styles.technicianPanelBtn}
-            onPress={handleGoToTechnicianPanel}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="construct-outline" size={20} color={colors.white} style={{ marginRight: 8 }} />
-            <Text style={styles.technicianPanelBtnText}>IR A MI PANEL DE TÉCNICO</Text>
-          </TouchableOpacity>
-        )}
+        {/* Modo Trabajador */}
+        <View style={styles.workerSection}>
+          {!userData.isTechnician ? (
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+              onPress={() => navigation?.navigate('RegistroTecnicoScreen')}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.actionBtnText, { color: colors.white }]}>CONVERTIRSE EN PROFESIONAL</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: colors.textMain }]}
+              onPress={() => navigation?.navigate('TecnicoPanel')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="briefcase" size={20} color={colors.white} style={{ marginRight: 8 }} />
+              <Text style={[styles.actionBtnText, { color: colors.white }]}>IR A MI PANEL DE TRABAJO</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
+        {/* Cerrar Sesión */}
         <TouchableOpacity
           style={styles.logoutBtn}
           onPress={handleLogout}
           disabled={loading}
           activeOpacity={0.8}
         >
-          <Ionicons name="log-out-outline" size={20} color={colors.error} />
-          <Text style={styles.logoutText}>Cerrar sesión de forma segura</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.error} />
+          ) : (
+            <>
+              <Ionicons name="log-out" size={20} color={colors.error} />
+              <Text style={styles.logoutText}>Cerrar Sesión</Text>
+            </>
+          )}
         </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -270,99 +194,36 @@ export default function ProfileScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  backBtn: { padding: 4, marginRight: 12 },
-  topBarTitle: { fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.textMain },
-  container: { padding: 16, paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: 24 },
-  avatarContainer: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  name: { fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.textMain, marginBottom: 2 },
-  location: { fontSize: typography.fontSize.sm, color: colors.textMuted },
-  sectionTitle: {
-    fontSize: typography.fontSize.md,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textMuted,
-    marginBottom: 8,
-    marginLeft: 4,
-    marginTop: 10,
-  },
-  cardSection: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    elevation: 2,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  fieldWrapper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  inputContainer: { flex: 1 },
-  editIconBtn: {
-    padding: 10,
-    marginBottom: 16,
-    marginLeft: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  editIconBtnActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
-  preferenceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 15, backgroundColor: colors.surface },
+  backBtn: { padding: 4 },
+  topBarTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textMain },
+  container: { padding: 20, paddingBottom: 40 },
+
+  header: { alignItems: 'center', marginBottom: 25, paddingTop: 10 },
+  avatarContainer: { width: 100, height: 100, borderRadius: 50, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.border, overflow: 'hidden', marginBottom: 15 },
+  avatarImage: { width: '100%', height: '100%' },
+  name: { fontSize: 24, fontWeight: '900', color: colors.textMain, marginBottom: 4 },
+  emailText: { fontSize: 14, color: colors.textMuted, marginBottom: 15 },
+  editProfileBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  editProfileText: { color: colors.white, fontSize: 14, fontWeight: 'bold' },
+
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', color: colors.textMuted, marginBottom: 10, marginLeft: 5, textTransform: 'uppercase' },
+  cardSection: { backgroundColor: colors.surface, borderRadius: 16, padding: 20, marginBottom: 25, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
+
+  infoRow: { flexDirection: 'row', alignItems: 'center' },
+  infoText: { fontSize: 16, color: colors.textMain, marginLeft: 12, fontWeight: '500' },
+
+  preferenceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   preferenceTextContainer: { flexDirection: 'row', alignItems: 'center' },
-  preferenceText: { fontSize: typography.fontSize.md, color: colors.textMain, marginLeft: 12, fontWeight: typography.fontWeight.medium },
-  clearDataBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
-  clearDataText: { color: colors.error, fontSize: typography.fontSize.sm, marginLeft: 8, fontWeight: typography.fontWeight.medium },
-  btnPrimary: { marginBottom: 10, borderRadius: 12 },
-  technicianPanelBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginBottom: 10,
-    elevation: 3,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-  technicianPanelBtnText: { color: colors.white, fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold },
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.errorSoft,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 10,
-  },
-  logoutText: { fontSize: typography.fontSize.sm, color: colors.error, marginLeft: 8, fontWeight: typography.fontWeight.bold },
+  iconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  preferenceText: { fontSize: 15, color: colors.textMain, marginLeft: 12, fontWeight: '600' },
+  clearDataBtn: { flexDirection: 'row', alignItems: 'center', paddingTop: 15, borderTopWidth: 1, borderTopColor: colors.border },
+  clearDataText: { color: colors.error, fontSize: 15, marginLeft: 12, fontWeight: '600' },
+
+  workerSection: { marginTop: 10 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 56, borderRadius: 14, marginBottom: 15 },
+  actionBtnText: { fontSize: 14, fontWeight: 'bold', letterSpacing: 0.5 },
+
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.errorSoft, height: 56, borderRadius: 14, marginTop: 5, marginBottom: 20 },
+  logoutText: { fontSize: 15, color: colors.error, marginLeft: 8, fontWeight: 'bold' },
 });

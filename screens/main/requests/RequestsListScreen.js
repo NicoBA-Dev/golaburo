@@ -1,64 +1,121 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../../theme/colors';
+
+// Componentes
 import CustomTabs from '../../../components/requests/CustomTabs';
 import RequestCard from '../../../components/requests/RequestCard';
 import RatingModal from '../../../components/requests/RatingModal';
 
-// Mismos datos, pero ahora los usaremos como estado inicial
-const INITIAL_REQUESTS = [
-    // ACTIVOS
-    { id: '1', service: 'Electricidad - Tablero General', technician: 'Pedro Vargas', date: '21/08/2026', status: 'active', step: 2, isRated: false, price: '120' },
-    { id: '2', service: 'Plomería - Fuga en tubería', technician: 'Luis Choque', date: '22/08/2026', status: 'active', step: 1, isRated: false, price: '80' },
-    { id: '3', service: 'Reparación de Lavadora', technician: 'Ana Morales', date: '24/08/2026', status: 'active', step: 0, isRated: false, price: '150' },
-
-    // HISTORIAL (Concluidos)
-    { id: '4', service: 'Instalación de Ducha', technician: 'Juan Pérez', date: '05/08/2026', status: 'completed', step: 3, isRated: false, price: '60' },
-    { id: '5', service: 'Cerrajería - Cambio de chapa', technician: 'Carlos Mamani', date: '10/07/2026', status: 'completed', step: 3, isRated: true, price: '90' },
-    { id: '6', service: 'Pintura - Interiores', technician: 'Roberto Rocha', date: '15/06/2026', status: 'completed', step: 3, isRated: true, price: '450' },
-];
+// Servicios de Backend
+import { supabase } from '../../../config/supabaseConfig';
+import { authService } from '../../../services/authService';
 
 export default function RequestsListScreen({ navigation }) {
     const [activeTab, setActiveTab] = useState('active');
 
-    // 1. Convertimos los datos estáticos en un estado dinámico
-    const [requests, setRequests] = useState(INITIAL_REQUESTS);
+    // Estados reales
+    const [requests, setRequests] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [clientId, setClientId] = useState(null);
 
     const [modalVisible, setModalVisible] = useState(false);
-
-    // 2. Ahora guardamos todo el objeto de la orden, no solo el nombre
     const [selectedRequest, setSelectedRequest] = useState(null);
 
-    // Filtramos la lista según la pestaña activa
-    const filteredRequests = requests.filter(req =>
-        activeTab === 'active' ? req.status === 'active' : req.status === 'completed'
+    // 1. Obtener el ID del cliente al cargar la pantalla
+    useEffect(() => {
+        const fetchSession = async () => {
+            const session = await authService.getCurrentSession();
+            if (session) setClientId(session.user.id);
+        };
+        fetchSession();
+    }, []);
+
+    // 2. useFocusEffect recarga la lista automáticamente cada vez que entras a esta pestaña
+    useFocusEffect(
+        useCallback(() => {
+            if (clientId) {
+                fetchRealRequests();
+            }
+        }, [clientId])
     );
+
+    const fetchRealRequests = async () => {
+        setLoading(true);
+        try {
+            // Hacemos un JOIN en Supabase para traer la categoría y el nombre del técnico
+            const { data, error } = await supabase
+                .from('service_requests')
+                .select(`
+                    id,
+                    description,
+                    suggested_date,
+                    status,
+                    technician_id,
+                    categories ( name ),
+                    technical_profiles (
+                        profiles ( full_name )
+                    )
+                `)
+                .eq('client_id', clientId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setRequests(data || []);
+        } catch (error) {
+            console.error('Error descargando solicitudes:', error);
+            Alert.alert('Error', 'No pudimos cargar tus solicitudes recientes.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 3. Lógica para filtrar pestañas ('active' vs 'history')
+    // pending/accepted van a "En curso" | completed/rejected van a "Historial"
+    const filteredRequests = requests.filter(req => {
+        if (activeTab === 'active') {
+            return req.status === 'pending' || req.status === 'accepted';
+        } else {
+            return req.status === 'completed' || req.status === 'rejected';
+        }
+    });
 
     const handleRatePress = (requestItem) => {
         setSelectedRequest(requestItem);
         setModalVisible(true);
     };
 
-    const handleRatingSubmit = (rating, review) => {
-        // 3. Actualizamos la tarjeta específica en nuestra lista
-        setRequests(prevRequests =>
-            prevRequests.map(req =>
-                req.id === selectedRequest.id
-                    ? { ...req, isRated: true } // Cambiamos el estado a calificado
-                    : req
-            )
-        );
-
+    const handleRatingSubmit = async (rating, review) => {
         setModalVisible(false);
 
-        // 4. Feedback premium para el usuario
-        setTimeout(() => {
+        try {
+            // Guardamos la reseña real en Supabase
+            const { error } = await supabase
+                .from('reviews')
+                .insert([{
+                    service_request_id: selectedRequest.id,
+                    client_id: clientId,
+                    technician_id: selectedRequest.technician_id,
+                    rating: rating,
+                    comment: review
+                }]);
+
+            if (error) throw error;
+
             Alert.alert(
                 "¡Gracias por tu opinión!",
-                `Has calificado a ${selectedRequest.technician} con ${rating} estrellas.`,
+                `Tu calificación ha sido enviada exitosamente.`,
                 [{ text: "Entendido", style: "default" }]
             );
-        }, 500); // Pequeño retraso para que la animación del modal termine primero
+
+            // Refrescamos la lista para actualizar la interfaz
+            fetchRealRequests();
+
+        } catch (error) {
+            console.error("Error al enviar reseña:", error);
+            Alert.alert("Ups", "No pudimos enviar tu calificación. Intenta de nuevo más tarde.");
+        }
     };
 
     return (
@@ -68,36 +125,46 @@ export default function RequestsListScreen({ navigation }) {
 
                 <CustomTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-                <FlatList
-                    data={filteredRequests}
-                    keyExtractor={(item) => item.id}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.listContent}
-                    renderItem={({ item }) => (
-                        <RequestCard
-                            service={item.service}
-                            technician={item.technician}
-                            date={item.date}
-                            status={item.status}
-                            isRated={item.isRated}
-                            onPress={() => navigation.navigate('RequestStatus', { requestData: item })}
-                            // Le pasamos todo el objeto 'item' a la función
-                            onRatePress={() => handleRatePress(item)}
-                        />
-                    )}
-                    ListEmptyComponent={
-                        <Text style={styles.emptyText}>
-                            No tienes solicitudes {activeTab === 'active' ? 'en curso' : 'en el historial'}.
-                        </Text>
-                    }
-                />
+                {loading ? (
+                    <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+                ) : (
+                    <FlatList
+                        data={filteredRequests}
+                        keyExtractor={(item) => item.id}
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={styles.listContent}
+                        renderItem={({ item }) => {
+                            // Mapeamos los datos de Supabase a lo que tu componente RequestCard espera
+                            const serviceName = item.categories?.name || 'Servicio';
+                            const techName = item.technical_profiles?.profiles?.full_name || 'Técnico';
+                            // Ajuste visual: Si está 'completed' marcamos el status para RequestCard
+                            const cardStatus = item.status === 'completed' ? 'completed' : 'active';
+
+                            return (
+                                <RequestCard
+                                    service={serviceName}
+                                    technician={techName}
+                                    date={item.suggested_date}
+                                    status={cardStatus}
+                                    isRated={false} // Por ahora en falso, luego podemos cruzarlo con la tabla reviews
+                                    onPress={() => navigation.navigate('RequestStatus', { requestData: item })}
+                                    onRatePress={() => handleRatePress({ ...item, technicianName: techName })}
+                                />
+                            );
+                        }}
+                        ListEmptyComponent={
+                            <Text style={styles.emptyText}>
+                                No tienes solicitudes {activeTab === 'active' ? 'en curso' : 'en el historial'}.
+                            </Text>
+                        }
+                    />
+                )}
             </View>
 
-            {/* Modal de Calificación */}
+            {/* Modal de Calificación de tu plan de UI */}
             <RatingModal
                 visible={modalVisible}
-                // Evitamos errores si selectedRequest es null
-                technicianName={selectedRequest?.technician || ''}
+                technicianName={selectedRequest?.technicianName || ''}
                 onClose={() => setModalVisible(false)}
                 onSubmit={handleRatingSubmit}
             />
