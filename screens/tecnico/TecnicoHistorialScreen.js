@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
@@ -31,7 +32,7 @@ export default function TecnicoHistorialScreen() {
     try {
       setLoading(true);
       const data = await technicianService.getRequestsHistory();
-      setHistorial(data);
+      setHistorial(data || []);
     } catch (error) {
       Alert.alert('Error', 'No se pudo obtener el historial de Supabase.');
     } finally {
@@ -39,9 +40,11 @@ export default function TecnicoHistorialScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchHistory();
+    }, [])
+  );
 
   const handleOpenDetail = (job) => {
     setSelectedJob(job);
@@ -65,6 +68,22 @@ export default function TecnicoHistorialScreen() {
     } catch (error) {
       Alert.alert('Error', error.message || 'No se pudo actualizar el estado.');
     }
+  };
+
+  // Confirmación al completar
+  const handleConfirmComplete = () => {
+    Alert.alert(
+      'Confirmar Finalización',
+      '¿Estás seguro de que deseas marcar este trabajo como completado?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, Completar',
+          style: 'default',
+          onPress: () => handleUpdateStatus('completed'),
+        },
+      ]
+    );
   };
 
   const mapStatusLabel = (status) => {
@@ -164,7 +183,7 @@ export default function TecnicoHistorialScreen() {
                 </View>
 
                 <View style={styles.tapNoticeRow}>
-                  <Text style={styles.tapNoticeText}>Toca para ver o modificar detalles</Text>
+                  <Text style={styles.tapNoticeText}>Toca para ver detalles</Text>
                   <Ionicons name="chevron-forward" size={14} color={colors.primary} />
                 </View>
               </TouchableOpacity>
@@ -233,27 +252,30 @@ export default function TecnicoHistorialScreen() {
                   <Text style={styles.modalValue}>{selectedJob.description}</Text>
                 </View>
 
-                <Text style={styles.actionHeaderTitle}>Cambiar Estado en Supabase:</Text>
+                {/* SI YA ESTÁ COMPLETADO/FINALIZADO: SE OCULTAN BOTONES */}
+                {selectedJob.status === 'completed' ? (
+                  <View style={styles.completedBox}>
+                    <Ionicons name="checkmark-circle" size={22} color={colors.success} />
+                    <Text style={styles.completedText}>Este trabajo ya ha sido completado y finalizado.</Text>
+                  </View>
+                ) : (
+                  <>
 
-                <PrimaryButton
-                  title="MARCAR COMO COMPLETADO"
-                  onPress={() => handleUpdateStatus('completed')}
-                  variant="primary"
-                  style={styles.actionBtn}
-                />
+                    <PrimaryButton
+                      title="MARCAR COMO COMPLETADO"
+                      onPress={handleConfirmComplete}
+                      variant="primary"
+                      style={styles.actionBtn}
+                    />
 
-                <PrimaryButton
-                  title="MARCAR EN PROCESO / EN CURSO"
-                  onPress={() => handleUpdateStatus('accepted')}
-                  style={[styles.actionBtn, { backgroundColor: colors.textMain }]}
-                />
-
-                <PrimaryButton
-                  title="CANCELAR SOLICITUD"
-                  onPress={() => handleUpdateStatus('rejected')}
-                  variant="outline"
-                  style={[styles.actionBtn, { borderColor: colors.error }]}
-                />
+                    <PrimaryButton
+                      title="CANCELAR SOLICITUD"
+                      onPress={() => handleUpdateStatus('rejected')}
+                      variant="outline"
+                      style={[styles.actionBtn, { borderColor: colors.error }]}
+                    />
+                  </>
+                )}
               </ScrollView>
             )}
           </TouchableOpacity>
@@ -346,4 +368,19 @@ const styles = StyleSheet.create({
   modalValueHighlight: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.primary, marginTop: 2 },
   actionHeaderTitle: { fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: colors.textMain, marginTop: 14, marginBottom: 10 },
   actionBtn: { marginBottom: 10 },
+  completedBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.successSoft,
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 16,
+    gap: 8,
+  },
+  completedText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.success,
+    fontWeight: typography.fontWeight.bold,
+    flex: 1,
+  },
 });

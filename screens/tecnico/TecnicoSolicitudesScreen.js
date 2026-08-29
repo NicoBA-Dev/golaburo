@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/typography';
@@ -26,7 +27,7 @@ export default function TecnicoSolicitudesScreen() {
     try {
       setLoading(true);
       const data = await technicianService.getPendingRequests();
-      setSolicitudes(data);
+      setSolicitudes(data || []);
     } catch (error) {
       Alert.alert('Error', 'No se pudieron consultar las solicitudes entrantes.');
     } finally {
@@ -34,9 +35,12 @@ export default function TecnicoSolicitudesScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchPending();
-  }, []);
+  // Recarga automáticamente al entrar a la pantalla
+  useFocusEffect(
+    useCallback(() => {
+      fetchPending();
+    }, [])
+  );
 
   const handleAceptar = async (id) => {
     try {
@@ -104,6 +108,13 @@ export default function TecnicoSolicitudesScreen() {
                 {item.description}
               </Text>
 
+              {/* UBICACIÓN MOVIDA ARRIBA DE LOS BOTONES */}
+              <View style={styles.mapWidget}>
+                <Ionicons name="location" size={24} color={colors.primary} style={{ marginRight: 8 }} />
+                <Text style={styles.mapAddress}>{item.address}, {item.zone}</Text>
+              </View>
+
+              {/* BOTONES DE ACCIÓN */}
               <View style={styles.actionButtonsRow}>
                 <PrimaryButton
                   title="RECHAZAR"
@@ -117,11 +128,6 @@ export default function TecnicoSolicitudesScreen() {
                   variant="primary"
                   style={styles.btnAceptar}
                 />
-              </View>
-
-              <View style={styles.mapWidget}>
-                <Ionicons name="location" size={24} color={colors.primary} style={{ marginRight: 8 }} />
-                <Text style={styles.mapAddress}>{item.address}, {item.zone}</Text>
               </View>
             </View>
           ))
@@ -165,10 +171,7 @@ const styles = StyleSheet.create({
   infoText: { fontSize: typography.fontSize.sm, color: colors.textMain, marginBottom: 4 },
   boldText: { fontWeight: typography.fontWeight.bold },
   callIcon: { marginLeft: 6, marginBottom: 4 },
-  descriptionText: { fontSize: typography.fontSize.sm, color: colors.textMain, marginTop: 4, marginBottom: 10 },
-  actionButtonsRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
-  btnRechazar: { flex: 1, borderColor: colors.error },
-  btnAceptar: { flex: 1, backgroundColor: colors.primary },
+  descriptionText: { fontSize: typography.fontSize.sm, color: colors.textMain, marginTop: 4, marginBottom: 12 },
   mapWidget: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -177,8 +180,12 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 12,
     padding: 10,
+    marginBottom: 14,
   },
   mapAddress: { fontSize: typography.fontSize.xs, color: colors.textMain, flex: 1 },
+  actionButtonsRow: { flexDirection: 'row', gap: 12 },
+  btnRechazar: { flex: 1, borderColor: colors.error },
+  btnAceptar: { flex: 1, backgroundColor: colors.primary },
   emptyContainer: { alignItems: 'center', marginTop: 40 },
   emptyText: { fontSize: typography.fontSize.md, color: colors.textMuted },
 });
