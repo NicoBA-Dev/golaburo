@@ -10,15 +10,17 @@ import { fontSize, fontWeight } from '../theme/typography';
 // Pantallas principales y Perfil
 import HomeScreen from '../screens/main/HomeScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
-import EditProfileScreen from '../screens/main/EditProfileScreen'; // <-- NUEVA PANTALLA AGREGADA
+import EditProfileScreen from '../screens/main/EditProfileScreen';
 import RegistroTecnicoScreen from '../screens/main/RegistroTecnicoScreen';
-import PerfilTecnicoScreen from '../screens/main/PerfilTecnicoScreen';
+
+// Pantallas de Técnico desde /tecnico/
+import PerfilTecnicoScreen from '../screens/tecnico/PerfilTecnicoScreen';
+import EditPerfilTecnicoScreen from '../screens/tecnico/EditPerfilTecnicoScreen';
 
 // Stacks anidados
 import SearchStackNavigator from './SearchStackNavigator';
 import RequestsStackNavigator from './RequestsStackNavigator';
 
-// 1. Mapa de íconos por pestaña
 const TAB_ICONS = {
     Inicio: { active: 'home', inactive: 'home-outline' },
     Buscar: { active: 'search', inactive: 'search-outline' },
@@ -26,22 +28,20 @@ const TAB_ICONS = {
     Perfil: { active: 'person', inactive: 'person-outline' },
 };
 
-// 2. Stack interno para el flujo del Perfil
 const ProfileStack = createNativeStackNavigator();
 
 function ProfileStackNavigator() {
     return (
-        // Añadida animación suave para transiciones más premium
         <ProfileStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
             <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
             <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
             <ProfileStack.Screen name="RegistroTecnicoScreen" component={RegistroTecnicoScreen} />
             <ProfileStack.Screen name="PerfilTecnicoScreen" component={PerfilTecnicoScreen} />
+            <ProfileStack.Screen name="EditPerfilTecnico" component={EditPerfilTecnicoScreen} />
         </ProfileStack.Navigator>
     );
 }
 
-// 3. Navegador principal por pestañas (Tab Navigator)
 const Tab = createBottomTabNavigator();
 
 export default function MainTabNavigator() {
@@ -82,7 +82,6 @@ export default function MainTabNavigator() {
         >
             <Tab.Screen name="Inicio" component={HomeScreen} />
 
-            {/* BUSCADOR */}
             <Tab.Screen
                 name="Buscar"
                 component={SearchStackNavigator}
@@ -94,7 +93,6 @@ export default function MainTabNavigator() {
                 })}
             />
 
-            {/* SOLICITUDES */}
             <Tab.Screen
                 name="Solicitudes"
                 component={RequestsStackNavigator}
@@ -104,7 +102,6 @@ export default function MainTabNavigator() {
                 }}
             />
 
-            {/* PERFIL */}
             <Tab.Screen name="Perfil" component={ProfileStackNavigator} />
         </Tab.Navigator>
     );

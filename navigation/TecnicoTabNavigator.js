@@ -7,12 +7,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { fontSize, fontWeight } from '../theme/typography';
 
-// Pantallas del Técnico
+// Pantallas del Técnico (PerfilTecnicoScreen movido a /tecnico/)
 import TecnicoSolicitudesScreen from '../screens/tecnico/TecnicoSolicitudesScreen';
 import TecnicoHistorialScreen from '../screens/tecnico/TecnicoHistorialScreen';
-import PerfilTecnicoScreen from '../screens/main/PerfilTecnicoScreen';
+import PerfilTecnicoScreen from '../screens/tecnico/PerfilTecnicoScreen'; // <-- NUEVA RUTA MOVIDA
 
-// Configuración de íconos para la barra del técnico
 const TECH_TAB_ICONS = {
   SolicitudesTab: { active: 'clipboard', inactive: 'clipboard-outline' },
   HistorialTab: { active: 'time', inactive: 'time-outline' },
