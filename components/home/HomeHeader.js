@@ -1,21 +1,23 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 
-export default function HomeHeader({ userName = 'Usuario' }) {
-    // Extraemos solo el primer nombre para un saludo más amigable
-    const firstName = userName ? userName.split(' ')[0] : 'Usuario';
-
+export default function HomeHeader({ userName, avatarUrl, onProfilePress }) {
     return (
         <View style={styles.headerContainer}>
             <View style={styles.textContainer}>
-                <Text style={styles.greeting}>¡Hola, {firstName}!</Text>
-                <Text style={styles.subtitle}>¿En qué te podemos ayudar hoy?</Text>
+                <Text style={styles.greeting}>¡Hola, {userName}!</Text>
+                <Text style={styles.subtitle}>Encuentra a los mejores profesionales</Text>
             </View>
-            <View style={styles.avatarCircle}>
-                <Ionicons name="person" size={24} color={colors.primary} />
-            </View>
+
+            <TouchableOpacity style={styles.avatarButton} onPress={onProfilePress} activeOpacity={0.8}>
+                {avatarUrl ? (
+                    <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                ) : (
+                    <Ionicons name="person" size={24} color={colors.primary} />
+                )}
+            </TouchableOpacity>
         </View>
     );
 }
@@ -25,30 +27,36 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 10,
-        marginBottom: 25,
+        marginBottom: 10,
     },
     textContainer: {
         flex: 1,
-        paddingRight: 10,
     },
     greeting: {
         fontSize: 26,
-        fontWeight: 'bold',
-        color: colors.primary,
+        fontWeight: '900',
+        color: colors.textMain,
+        letterSpacing: -0.5,
         marginBottom: 4,
     },
     subtitle: {
-        fontSize: 15,
+        fontSize: 14,
         color: colors.textMuted,
-        lineHeight: 20,
+        fontWeight: '500',
     },
-    avatarCircle: {
+    avatarButton: {
         width: 50,
         height: 50,
         borderRadius: 25,
         backgroundColor: colors.primarySoft,
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: colors.border,
+        overflow: 'hidden', // Importante para que la imagen quede redonda
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     }
 });

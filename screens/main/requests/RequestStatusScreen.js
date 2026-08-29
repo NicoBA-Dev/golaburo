@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
 import ProgressStepper from '../../../components/ui/ProgressStepper';
@@ -8,7 +8,6 @@ import { supabase } from '../../../config/supabaseConfig';
 export default function RequestStatusScreen({ route, navigation }) {
     const { requestData } = route.params;
 
-    // Estados para manejar los datos dinámicos y la carga
     const [currentStatus, setCurrentStatus] = useState(requestData.status);
     const [technicianPhone, setTechnicianPhone] = useState(null);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -17,7 +16,6 @@ export default function RequestStatusScreen({ route, navigation }) {
     const techName = requestData.technical_profiles?.profiles?.full_name || 'Técnico';
     const shortId = requestData.id ? requestData.id.substring(0, 6).toUpperCase() : '000000';
 
-    // Obtener el teléfono del técnico usando tu función RPC de la base de datos
     useEffect(() => {
         const fetchPhone = async () => {
             const { data, error } = await supabase.rpc('get_technician_phone', {
@@ -48,42 +46,49 @@ export default function RequestStatusScreen({ route, navigation }) {
         }
     };
 
-    // Función principal para cambiar el estado de la solicitud
+    // FUNCIÓN MEJORADA: Soporte nativo para simulador Web y captura de errores RLS
     const updateRequestStatus = async (newStatus) => {
         const actionText = newStatus === 'completed' ? 'marcar como concluido' : 'cancelar';
+        const msg = `¿Estás seguro de que deseas ${actionText} este servicio?`;
 
-        Alert.alert(
-            "Confirmar acción",
-            `¿Estás seguro de que deseas ${actionText} este servicio?`,
-            [
+        const executeUpdate = async () => {
+            setIsUpdating(true);
+            try {
+                const { data, error } = await supabase
+                    .from('service_requests')
+                    .update({ status: newStatus })
+                    .eq('id', requestData.id)
+                    .select(); // .select() verifica si la BD realmente aplicó el cambio
+
+                if (error) throw error;
+                if (!data || data.length === 0) throw new Error("La base de datos bloqueó la acción (No tienes permisos).");
+
+                setCurrentStatus(newStatus);
+
+                const successMsg = `El servicio ha sido ${newStatus === 'completed' ? 'concluido' : 'cancelado'}.`;
+                if (Platform.OS === 'web') window.alert(successMsg);
+                else Alert.alert('Éxito', successMsg);
+
+                if (newStatus === 'completed') navigation.goBack();
+            } catch (error) {
+                console.error("Error al actualizar estado:", error);
+                const errorMsg = error.message || 'No se pudo actualizar el estado.';
+                if (Platform.OS === 'web') window.alert(errorMsg);
+                else Alert.alert('Error', errorMsg);
+            } finally {
+                setIsUpdating(false);
+            }
+        };
+
+        // Si estamos en la Web, usamos el confirm nativo del navegador
+        if (Platform.OS === 'web') {
+            if (window.confirm(msg)) executeUpdate();
+        } else {
+            Alert.alert("Confirmar acción", msg, [
                 { text: "No", style: "cancel" },
-                {
-                    text: "Sí, confirmar",
-                    onPress: async () => {
-                        setIsUpdating(true);
-                        try {
-                            const { error } = await supabase
-                                .from('service_requests')
-                                .update({ status: newStatus })
-                                .eq('id', requestData.id);
-
-                            if (error) throw error;
-
-                            setCurrentStatus(newStatus);
-                            Alert.alert('Éxito', `El servicio ha sido ${newStatus === 'completed' ? 'concluido' : 'cancelado'}.`);
-
-                            // Si se completó, volvemos atrás para que pueda calificar desde la bandeja
-                            if (newStatus === 'completed') navigation.goBack();
-                        } catch (error) {
-                            console.error("Error al actualizar estado:", error);
-                            Alert.alert('Error', error.message || 'No se pudo actualizar el estado.');
-                        } finally {
-                            setIsUpdating(false);
-                        }
-                    }
-                }
-            ]
-        );
+                { text: "Sí, confirmar", onPress: executeUpdate }
+            ]);
+        }
     };
 
     const handleCallTechnician = () => {
@@ -97,9 +102,7 @@ export default function RequestStatusScreen({ route, navigation }) {
     const ReceiptRow = ({ label, value, highlight, isError }) => (
         <View style={styles.receiptRow}>
             <Text style={styles.receiptLabel}>{label}</Text>
-            <Text style={[styles.receiptValue, highlight && styles.highlightText, isError && styles.errorText]}>
-                {value}
-            </Text>
+            <Text style={[styles.receiptValue, highlight && styles.highlightText, isError && styles.errorText]}>{value}</Text>
         </View>
     );
 
@@ -123,19 +126,11 @@ export default function RequestStatusScreen({ route, navigation }) {
                     <Text style={styles.receiptTitle}>Detalles de la orden</Text>
                     <ReceiptRow label="ID de Orden:" value={`#${shortId}`} />
                     <ReceiptRow label="Fecha sugerida:" value={requestData.suggested_date || 'No definida'} />
-                    <ReceiptRow
-                        label="Estado actual:"
-                        value={getStatusText(currentStatus)}
-                        isError={currentStatus === 'rejected'}
-                        highlight={currentStatus === 'completed'}
-                    />
+                    <ReceiptRow label="Estado actual:" value={getStatusText(currentStatus)} isError={currentStatus === 'rejected'} highlight={currentStatus === 'completed'} />
                     <ReceiptRow label="Descripción:" value={requestData.description || 'Sin detalle'} />
                 </View>
 
-                {/* ACCIONES DEL CLIENTE SEGÚN EL ESTADO DE LA BASE DE DATOS */}
                 <View style={styles.actionsContainer}>
-
-                    {/* Llamar al Técnico (Solo si la BD nos devolvió el teléfono) */}
                     {technicianPhone && currentStatus !== 'rejected' && (
                         <TouchableOpacity style={styles.callButton} onPress={handleCallTechnician}>
                             <Ionicons name="call" size={20} color={colors.white} style={{ marginRight: 8 }} />
@@ -147,7 +142,6 @@ export default function RequestStatusScreen({ route, navigation }) {
                         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
                     ) : (
                         <>
-                            {/* Marcar como concluido (Solo disponible si el estado es 'accepted') */}
                             {currentStatus === 'accepted' && (
                                 <TouchableOpacity style={styles.completeButton} onPress={() => updateRequestStatus('completed')}>
                                     <Ionicons name="checkmark-circle-outline" size={20} color={colors.white} style={{ marginRight: 8 }} />
@@ -155,7 +149,6 @@ export default function RequestStatusScreen({ route, navigation }) {
                                 </TouchableOpacity>
                             )}
 
-                            {/* Cancelar solicitud (Disponible si es 'pending' o 'accepted') */}
                             {(currentStatus === 'pending' || currentStatus === 'accepted') && (
                                 <TouchableOpacity style={styles.cancelButton} onPress={() => updateRequestStatus('rejected')}>
                                     <Text style={styles.cancelButtonText}>Cancelar Solicitud</Text>
@@ -164,7 +157,6 @@ export default function RequestStatusScreen({ route, navigation }) {
                         </>
                     )}
                 </View>
-
             </ScrollView>
         </SafeAreaView>
     );
@@ -185,7 +177,6 @@ const styles = StyleSheet.create({
     receiptValue: { fontSize: 14, color: colors.textMain, fontWeight: '500', textAlign: 'right', flex: 1.5 },
     highlightText: { fontWeight: 'bold', color: colors.primary },
     errorText: { fontWeight: 'bold', color: colors.error || '#D32F2F' },
-
     actionsContainer: { width: '100%', marginTop: 20 },
     callButton: { flexDirection: 'row', backgroundColor: '#000000', height: 50, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
     callButtonText: { color: colors.white, fontSize: 14, fontWeight: 'bold' },

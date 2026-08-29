@@ -26,7 +26,9 @@ export default function EditPerfilTecnicoScreen({ navigation, route }) {
 
   const handleSave = async () => {
     if (!rate || isNaN(rate) || Number(rate) <= 0) {
-      Alert.alert('Campo requerido', 'Por favor ingresa una tarifa válida por hora.');
+      const errMsg = 'Por favor ingresa una tarifa válida por hora.';
+      if (Platform.OS === 'web') window.alert(errMsg);
+      else Alert.alert('Campo requerido', errMsg);
       return;
     }
 
@@ -40,11 +42,16 @@ export default function EditPerfilTecnicoScreen({ navigation, route }) {
         coverageZones: techProfile.coverage_zones,
       });
 
-      Alert.alert('¡Éxito!', 'Tu información técnica se actualizó correctamente.');
+      const successMsg = 'Tu información técnica se actualizó correctamente.';
+      if (Platform.OS === 'web') window.alert(successMsg);
+      else Alert.alert('¡Éxito!', successMsg);
+
       navigation.goBack();
     } catch (error) {
       console.error('Error guardando perfil técnico:', error);
-      Alert.alert('Error', 'No pudimos guardar los cambios en Supabase.');
+      const errMsg = 'No pudimos guardar los cambios en Supabase.';
+      if (Platform.OS === 'web') window.alert(`Error: ${errMsg}`);
+      else Alert.alert('Error', errMsg);
     } finally {
       setIsSaving(false);
     }
@@ -62,7 +69,6 @@ export default function EditPerfilTecnicoScreen({ navigation, route }) {
         </View>
 
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          {/* Avatar del Técnico */}
           <View style={styles.avatarSection}>
             <View style={styles.avatarContainer}>
               {techProfile?.profiles?.avatar_url ? (
@@ -74,7 +80,6 @@ export default function EditPerfilTecnicoScreen({ navigation, route }) {
             <Text style={styles.userNameText}>{techProfile?.profiles?.full_name}</Text>
           </View>
 
-          {/* Formulario de Edición Técnica */}
           <CustomTextInput
             label="Tarifa Base por Hora (Bs)"
             placeholder="Ej. 150"
@@ -95,7 +100,7 @@ export default function EditPerfilTecnicoScreen({ navigation, route }) {
           />
 
           <Text style={styles.infoText}>
-            Nota: Los años de experiencia y la especialidad principal están protegidos para mantener la validez de las calificaciones[cite: 16].
+            Nota: Los años de experiencia y la especialidad principal están protegidos para mantener la validez de las calificaciones.
           </Text>
         </ScrollView>
 
@@ -120,39 +125,14 @@ export default function EditPerfilTecnicoScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   keyboardView: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 15,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   backButton: { padding: 5, marginLeft: -5 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textMain },
   container: { padding: 20 },
-
   avatarSection: { alignItems: 'center', marginBottom: 25, marginTop: 10 },
-  avatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
+  avatarContainer: { width: 100, height: 100, borderRadius: 50, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.primary, overflow: 'hidden', elevation: 4, shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
   avatarImage: { width: '100%', height: '100%' },
   userNameText: { fontSize: 18, fontWeight: 'bold', color: colors.textMain, marginTop: 10 },
-
   infoText: { fontSize: 13, color: colors.textMuted, textAlign: 'center', marginTop: 10, lineHeight: 20 },
   footer: { padding: 20, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border },
   saveButton: { backgroundColor: colors.primary, height: 55, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

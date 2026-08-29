@@ -9,41 +9,46 @@ export default function RatingModal({ visible, technicianName, onClose, onSubmit
 
     const handleSubmit = () => {
         onSubmit(rating, review);
-        // Limpiamos los estados después de enviar
         setRating(0);
         setReview('');
     };
 
+    const handleClose = () => {
+        setRating(0);
+        setReview('');
+        onClose();
+    };
+
     return (
-        <Modal visible={visible} transparent={true} animationType="fade">
+        <Modal visible={visible} transparent={true} animationType="slide">
             <View style={styles.overlay}>
-                {/* KeyboardAvoidingView evita que el teclado tape el modal */}
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.keyboardContainer}
                 >
                     <View style={styles.sheet}>
-                        <Text style={styles.title}>Calificar Trabajo</Text>
-                        <Text style={styles.technicianName}>{technicianName}</Text>
+                        {/* Indicador de arrastre superior */}
+                        <View style={styles.dragIndicator} />
 
-                        <Text style={styles.label}>Tu Calificación</Text>
+                        <Text style={styles.title}>Calificar Trabajo</Text>
+                        <Text style={styles.technicianName}>¿Qué tal te pareció el servicio de <Text style={styles.boldTech}>{technicianName}</Text>?</Text>
+
                         <View style={styles.starsContainer}>
                             {[1, 2, 3, 4, 5].map((star) => (
-                                <TouchableOpacity key={star} onPress={() => setRating(star)} activeOpacity={0.7}>
+                                <TouchableOpacity key={star} onPress={() => setRating(star)} activeOpacity={0.6} style={styles.starButton}>
                                     <Ionicons
                                         name={rating >= star ? "star" : "star-outline"}
-                                        size={40}
+                                        size={46}
                                         color={rating >= star ? "#F9A825" : colors.border}
-                                        style={styles.starIcon}
                                     />
                                 </TouchableOpacity>
                             ))}
                         </View>
 
-                        <Text style={styles.label}>Tu Reseña (opcional)</Text>
+                        <Text style={styles.label}>Escribe una reseña (Opcional)</Text>
                         <TextInput
                             style={styles.textInput}
-                            placeholder="Escribe aquí tu opinión sobre el trabajo..."
+                            placeholder="Ej. Muy puntual y dejó todo limpio..."
                             placeholderTextColor={colors.placeholder}
                             value={review}
                             onChangeText={setReview}
@@ -60,8 +65,8 @@ export default function RatingModal({ visible, technicianName, onClose, onSubmit
                             <Text style={styles.primaryButtonText}>ENVIAR CALIFICACIÓN</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.secondaryButton} onPress={onClose}>
-                            <Text style={styles.secondaryButtonText}>OMITIR POR AHORA</Text>
+                        <TouchableOpacity style={styles.secondaryButton} onPress={handleClose}>
+                            <Text style={styles.secondaryButtonText}>Omitir por ahora</Text>
                         </TouchableOpacity>
                     </View>
                 </KeyboardAvoidingView>
@@ -73,49 +78,47 @@ export default function RatingModal({ visible, technicianName, onClose, onSubmit
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: colors.overlay, // Fondo oscuro translúcido
+        backgroundColor: 'rgba(0, 0, 0, 0.4)', // Fondo un poco más oscuro para que resalte la hoja
         justifyContent: 'flex-end',
     },
-    keyboardContainer: {
-        width: '100%',
-    },
+    keyboardContainer: { width: '100%' },
     sheet: {
         backgroundColor: colors.surface,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
         padding: 24,
         paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
     },
-    title: { fontSize: 22, fontWeight: '900', color: colors.textMain, textAlign: 'center', marginBottom: 4 },
-    technicianName: { fontSize: 16, color: colors.textMuted, textAlign: 'center', marginBottom: 24 },
-    label: { fontSize: 14, fontWeight: 'bold', color: colors.textMain, marginBottom: 12 },
-    starsContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 24 },
-    starIcon: { marginHorizontal: 4 },
+    dragIndicator: { width: 40, height: 5, borderRadius: 3, backgroundColor: colors.border, alignSelf: 'center', marginBottom: 20 },
+    title: { fontSize: 22, fontWeight: '900', color: colors.textMain, textAlign: 'center', marginBottom: 6, letterSpacing: -0.5 },
+    technicianName: { fontSize: 15, color: colors.textMuted, textAlign: 'center', marginBottom: 25 },
+    boldTech: { fontWeight: 'bold', color: colors.textMain },
+
+    starsContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 30, gap: 4 },
+    starButton: { padding: 4 },
+
+    label: { fontSize: 14, fontWeight: 'bold', color: colors.textMain, marginBottom: 10, marginLeft: 4 },
     textInput: {
-        backgroundColor: colors.background,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: 12,
-        padding: 15,
-        height: 100,
-        textAlignVertical: 'top',
-        color: colors.textMain,
+        backgroundColor: colors.background, // Contraste sutil
+        borderWidth: 1, borderColor: colors.border, borderRadius: 16,
+        padding: 18, height: 110, textAlignVertical: 'top',
+        color: colors.textMain, fontSize: 15,
     },
-    charCount: { textAlign: 'right', fontSize: 12, color: colors.textMuted, marginTop: 6, marginBottom: 20 },
+    charCount: { textAlign: 'right', fontSize: 12, fontWeight: '600', color: colors.textMuted, marginTop: 8, marginBottom: 20, marginRight: 4 },
+
     primaryButton: {
-        backgroundColor: colors.primary,
-        height: 55,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 12,
+        backgroundColor: colors.primary, height: 56, borderRadius: 16,
+        alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+        shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4
     },
-    buttonDisabled: { backgroundColor: colors.disabledBg },
-    primaryButtonText: { color: colors.surface, fontSize: 14, fontWeight: 'bold' },
-    secondaryButton: {
-        height: 55,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    secondaryButtonText: { color: colors.textMuted, fontSize: 14, fontWeight: '600' }
+    buttonDisabled: { backgroundColor: colors.disabledBg, shadowOpacity: 0, elevation: 0 },
+    primaryButtonText: { color: colors.surface, fontSize: 15, fontWeight: 'bold', letterSpacing: 0.5 },
+
+    secondaryButton: { height: 50, alignItems: 'center', justifyContent: 'center' },
+    secondaryButtonText: { color: colors.textMuted, fontSize: 15, fontWeight: 'bold' }
 });

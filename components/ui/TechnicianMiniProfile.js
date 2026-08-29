@@ -1,33 +1,38 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 
-export default function TechnicianMiniProfile({ name, rating, reviews, verified, onChatPress }) {
+export default function TechnicianMiniProfile({ name, avatarUrl, rating, reviews, verified }) {
     return (
         <View style={styles.container}>
-            {/* Avatar */}
-            <View style={styles.avatar}>
-                <Ionicons name="person" size={24} color={colors.textMuted} />
+            {/* Avatar del Técnico (Soporta URL real o ícono por defecto) */}
+            <View style={styles.avatarContainer}>
+                {avatarUrl ? (
+                    <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                ) : (
+                    <Ionicons name="person" size={28} color={colors.primarySoft} />
+                )}
             </View>
 
-            {/* Información */}
-            <View style={styles.info}>
+            {/* Información Principal */}
+            <View style={styles.infoContainer}>
                 <View style={styles.nameRow}>
                     <Text style={styles.name} numberOfLines={1}>{name}</Text>
                     {verified && (
-                        <Ionicons name="checkmark-circle" size={16} color={colors.primary} style={styles.badge} />
+                        <View style={styles.verifiedBadge}>
+                            <Ionicons name="checkmark" size={10} color={colors.white} />
+                        </View>
                     )}
                 </View>
-                <Text style={styles.ratingText}>
-                    <Ionicons name="star" size={14} color="#F9A825" /> {rating} de 5 ({reviews} Calificaciones)
-                </Text>
-            </View>
 
-            {/* Botón de Chat */}
-            <TouchableOpacity style={styles.chatButton} onPress={onChatPress} activeOpacity={0.7}>
-                <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.textMain} />
-            </TouchableOpacity>
+                <View style={styles.ratingRow}>
+                    <Ionicons name="star" size={14} color="#F9A825" />
+                    <Text style={styles.ratingText}>
+                        {rating} <Text style={styles.reviewsText}>({reviews} reseñas)</Text>
+                    </Text>
+                </View>
+            </View>
         </View>
     );
 }
@@ -37,25 +42,36 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: colors.surface,
-        padding: 16,
+        padding: 14,
         borderRadius: 16,
         borderWidth: 1,
         borderColor: colors.border,
-        marginBottom: 20,
+        // Sombra sutil para darle profundidad
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.03,
+        shadowRadius: 8,
+        elevation: 2,
     },
-    avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+    avatarContainer: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
         backgroundColor: colors.background,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 15,
+        marginRight: 14,
         borderWidth: 1,
         borderColor: colors.border,
+        overflow: 'hidden',
     },
-    info: {
+    avatarImage: {
+        width: '100%',
+        height: '100%',
+    },
+    infoContainer: {
         flex: 1,
+        justifyContent: 'center',
     },
     nameRow: {
         flexDirection: 'row',
@@ -64,23 +80,31 @@ const styles = StyleSheet.create({
     },
     name: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '900',
         color: colors.textMain,
+        letterSpacing: -0.3,
+        marginRight: 6,
     },
-    badge: {
-        marginLeft: 4,
-    },
-    ratingText: {
-        fontSize: 13,
-        color: colors.textMuted,
-    },
-    chatButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: colors.background,
+    verifiedBadge: {
+        backgroundColor: colors.primary,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        marginLeft: 10,
     },
+    ratingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    ratingText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: colors.textMain,
+        marginLeft: 4,
+    },
+    reviewsText: {
+        fontWeight: '500',
+        color: colors.textMuted,
+    }
 });

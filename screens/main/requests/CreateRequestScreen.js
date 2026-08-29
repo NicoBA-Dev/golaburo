@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
 
@@ -28,14 +28,20 @@ export default function CreateRequestScreen({ route, navigation }) {
         fetchSession();
     }, []);
 
+    // Helper para alertas seguras en Web y Móvil
+    const showMessage = (title, msg) => {
+        if (Platform.OS === 'web') window.alert(`${title}: \n${msg}`);
+        else Alert.alert(title, msg);
+    };
+
     const handleSubmit = async () => {
         if (!description.trim() || !zona.trim() || !direccionExacta.trim() || !date.trim() || !timeRange.trim()) {
-            Alert.alert('Campos incompletos', 'Por favor completa todos los datos.');
+            showMessage('Campos incompletos', 'Por favor completa todos los datos para que el técnico sepa cómo ayudarte.');
             return;
         }
 
         if (!clientId || !technician?.id) {
-            Alert.alert('Error de sesión', 'No pudimos identificar tu cuenta o la del técnico.');
+            showMessage('Error de sesión', 'No pudimos identificar tu cuenta o la del técnico.');
             return;
         }
 
@@ -44,7 +50,7 @@ export default function CreateRequestScreen({ route, navigation }) {
         try {
             const requestData = {
                 client_id: clientId,
-                technician_id: technician.id, // CORRECCIÓN CLAVE: Usamos technician.id (ID del perfil técnico)
+                technician_id: technician.id,
                 category_id: technician.category_id,
                 description: description.trim(),
                 suggested_date: date.trim(),
@@ -56,17 +62,22 @@ export default function CreateRequestScreen({ route, navigation }) {
 
             await requestService.createRequest(requestData);
 
-            Alert.alert('¡Éxito!', 'Tu solicitud fue enviada correctamente al profesional.');
-            navigation.navigate('Solicitudes');
+            // Redirección con los datos corregidos para el ticket de éxito
+            navigation.navigate('RequestSuccess', {
+                requestData: {
+                    technicianName: technician?.full_name,
+                    categoryName: technician?.category_name || 'Servicio Profesional',
+                    suggested_date: date.trim(),
+                    suggested_time_range: timeRange.trim()
+                }
+            });
 
         } catch (error) {
             console.error("Error al crear la solicitud:", error);
-
-            // Si la base de datos nos manda un mensaje específico (como el trigger), lo mostramos
             if (error.message) {
-                Alert.alert('No se pudo enviar', error.message);
+                showMessage('No se pudo enviar', error.message);
             } else {
-                Alert.alert('Error', 'Hubo un problema. Verifica el formato de la fecha (AAAA-MM-DD).');
+                showMessage('Error', 'Hubo un problema. Verifica el formato de la fecha (AAAA-MM-DD).');
             }
         } finally {
             setIsSubmitting(false);
@@ -75,11 +86,13 @@ export default function CreateRequestScreen({ route, navigation }) {
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
             <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
+                {/* Cabecera Premium */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
-                        <Ionicons name="close" size={26} color={colors.textMain} />
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton} activeOpacity={0.7}>
+                        <Ionicons name="close" size={28} color={colors.textMain} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Solicitar Servicio</Text>
                     <View style={styles.iconButton} />
@@ -87,17 +100,21 @@ export default function CreateRequestScreen({ route, navigation }) {
 
                 <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-                    <TechnicianMiniProfile
-                        name={technician?.full_name || 'Profesional verificado'}
-                        rating={technician?.avg_rating || 5.0}
-                        reviews={technician?.ratings_count || 0}
-                        verified={technician?.is_active}
-                    />
+                    <Text style={styles.sectionLabel}>Profesional Seleccionado</Text>
+                    <View style={styles.cardWrapper}>
+                        <TechnicianMiniProfile
+                            name={technician?.full_name || 'Profesional verificado'}
+                            rating={technician?.avg_rating || 5.0}
+                            reviews={technician?.ratings_count || 0}
+                            verified={technician?.is_active}
+                        />
+                    </View>
 
+                    <Text style={styles.sectionLabel}>Detalles del Trabajo</Text>
                     <View style={styles.formSection}>
                         <CustomTextInput
                             label="¿Qué necesitas que haga el profesional?"
-                            placeholder="Ej. Revisión de instalación..."
+                            placeholder="Ej. Revisión de instalación, fuga de agua..."
                             value={description}
                             onChangeText={setDescription}
                             multiline={true}
@@ -107,7 +124,7 @@ export default function CreateRequestScreen({ route, navigation }) {
                         <View style={styles.row}>
                             <View style={styles.halfWidth}>
                                 <CustomTextInput
-                                    label="Fecha (Año-Mes-Día)"
+                                    label="Fecha (A-M-D)"
                                     value={date}
                                     onChangeText={setDate}
                                     placeholder="Ej. 2026-10-15"
@@ -116,7 +133,7 @@ export default function CreateRequestScreen({ route, navigation }) {
                             </View>
                             <View style={styles.halfWidth}>
                                 <CustomTextInput
-                                    label="Hora o Rango"
+                                    label="Hora / Rango"
                                     value={timeRange}
                                     onChangeText={setTimeRange}
                                     placeholder="Ej. 14:00 - 16:00"
@@ -141,10 +158,15 @@ export default function CreateRequestScreen({ route, navigation }) {
                             iconName="location-outline"
                         />
                     </View>
-
                 </ScrollView>
 
+                {/* Footer con botón flotante y sello de confianza */}
                 <View style={styles.footer}>
+                    <View style={styles.trustNoteContainer}>
+                        <Ionicons name="shield-checkmark" size={16} color={colors.success} style={{ marginRight: 6 }} />
+                        <Text style={styles.trustNoteText}>Solicitar no tiene costo. El pago se acuerda con el técnico.</Text>
+                    </View>
+
                     <TouchableOpacity
                         style={[styles.submitButton, isSubmitting && styles.disabledButton]}
                         onPress={handleSubmit}
@@ -154,7 +176,10 @@ export default function CreateRequestScreen({ route, navigation }) {
                         {isSubmitting ? (
                             <ActivityIndicator size="small" color={colors.white} />
                         ) : (
-                            <Text style={styles.submitButtonText}>ENVIAR SOLICITUD</Text>
+                            <>
+                                <Text style={styles.submitButtonText}>ENVIAR SOLICITUD</Text>
+                                <Ionicons name="paper-plane" size={18} color={colors.white} style={{ marginLeft: 8 }} />
+                            </>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -166,15 +191,31 @@ export default function CreateRequestScreen({ route, navigation }) {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: colors.background },
     keyboardView: { flex: 1 },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, paddingVertical: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+
+    header: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingHorizontal: 15, paddingVertical: 12, backgroundColor: colors.surface,
+        borderBottomWidth: 1, borderBottomColor: colors.border,
+        elevation: 4, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
+        zIndex: 10
+    },
     iconButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-    headerTitle: { fontSize: 17, fontWeight: 'bold', color: colors.textMain },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: colors.textMain, letterSpacing: -0.3 },
+
     scroll: { padding: 20, paddingBottom: 40 },
-    formSection: { marginTop: 10 },
+
+    sectionLabel: { fontSize: 14, fontWeight: 'bold', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10, marginLeft: 4 },
+    cardWrapper: { marginBottom: 25 },
+
+    formSection: { backgroundColor: colors.surface, padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 },
     row: { flexDirection: 'row', justifyContent: 'space-between' },
     halfWidth: { width: '48%' },
+
     footer: { padding: 20, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border },
-    submitButton: { flexDirection: 'row', backgroundColor: colors.primary, height: 54, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    disabledButton: { opacity: 0.7 },
+    trustNoteContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 15 },
+    trustNoteText: { fontSize: 12, color: colors.textMuted, fontWeight: '500' },
+
+    submitButton: { flexDirection: 'row', backgroundColor: colors.primary, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+    disabledButton: { opacity: 0.7, shadowOpacity: 0, elevation: 0 },
     submitButtonText: { color: colors.white, fontSize: 15, fontWeight: 'bold', letterSpacing: 0.5 },
 });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, Alert, ActivityIndicator, Platform, StatusBar } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
 
 // Componentes
@@ -15,7 +16,6 @@ import { authService } from '../../../services/authService';
 export default function RequestsListScreen({ navigation }) {
     const [activeTab, setActiveTab] = useState('active');
 
-    // Estados reales
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [clientId, setClientId] = useState(null);
@@ -23,7 +23,6 @@ export default function RequestsListScreen({ navigation }) {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
 
-    // 1. Obtener el ID del cliente al cargar la pantalla
     useEffect(() => {
         const fetchSession = async () => {
             const session = await authService.getCurrentSession();
@@ -32,7 +31,6 @@ export default function RequestsListScreen({ navigation }) {
         fetchSession();
     }, []);
 
-    // 2. useFocusEffect recarga la lista automáticamente cada vez que entras a esta pestaña
     useFocusEffect(
         useCallback(() => {
             if (clientId) {
@@ -44,7 +42,6 @@ export default function RequestsListScreen({ navigation }) {
     const fetchRealRequests = async () => {
         setLoading(true);
         try {
-            // Hacemos un JOIN en Supabase para traer la categoría y el nombre del técnico
             const { data, error } = await supabase
                 .from('service_requests')
                 .select(`
@@ -56,7 +53,8 @@ export default function RequestsListScreen({ navigation }) {
                     categories ( name ),
                     technical_profiles (
                         profiles ( full_name )
-                    )
+                    ),
+                    reviews ( id ) 
                 `)
                 .eq('client_id', clientId)
                 .order('created_at', { ascending: false });
@@ -65,14 +63,14 @@ export default function RequestsListScreen({ navigation }) {
             setRequests(data || []);
         } catch (error) {
             console.error('Error descargando solicitudes:', error);
-            Alert.alert('Error', 'No pudimos cargar tus solicitudes recientes.');
+            const errMsg = 'No pudimos cargar tus solicitudes.';
+            if (Platform.OS === 'web') window.alert(errMsg);
+            else Alert.alert('Error', errMsg);
         } finally {
             setLoading(false);
         }
     };
 
-    // 3. Lógica para filtrar pestañas ('active' vs 'history')
-    // pending/accepted van a "En curso" | completed/rejected van a "Historial"
     const filteredRequests = requests.filter(req => {
         if (activeTab === 'active') {
             return req.status === 'pending' || req.status === 'accepted';
@@ -90,7 +88,6 @@ export default function RequestsListScreen({ navigation }) {
         setModalVisible(false);
 
         try {
-            // Guardamos la reseña real en Supabase
             const { error } = await supabase
                 .from('reviews')
                 .insert([{
@@ -98,35 +95,45 @@ export default function RequestsListScreen({ navigation }) {
                     client_id: clientId,
                     technician_id: selectedRequest.technician_id,
                     rating: rating,
-                    comment: review
+                    comment: review.trim() || null
                 }]);
 
             if (error) throw error;
 
-            Alert.alert(
-                "¡Gracias por tu opinión!",
-                `Tu calificación ha sido enviada exitosamente.`,
-                [{ text: "Entendido", style: "default" }]
-            );
+            const successMsg = "Tu calificación ha sido enviada exitosamente. El promedio del profesional se actualizará automáticamente.";
+            if (Platform.OS === 'web') window.alert(`¡Gracias por tu opinión! ${successMsg}`);
+            else Alert.alert("¡Gracias por tu opinión!", successMsg, [{ text: "Entendido", style: "default" }]);
 
-            // Refrescamos la lista para actualizar la interfaz
             fetchRealRequests();
 
         } catch (error) {
             console.error("Error al enviar reseña:", error);
-            Alert.alert("Ups", "No pudimos enviar tu calificación. Intenta de nuevo más tarde.");
+            const errMsg = "No pudimos enviar tu calificación. Verifica tu conexión.";
+            if (Platform.OS === 'web') window.alert(errMsg);
+            else Alert.alert("Ups", errMsg);
         }
     };
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
             <View style={styles.container}>
-                <Text style={styles.headerTitle}>Mis Solicitudes</Text>
+
+                {/* Cabecera Premium */}
+                <View style={styles.headerContainer}>
+                    <Text style={styles.headerTitle}>Mis Solicitudes</Text>
+                    <Text style={styles.headerSubtitle}>
+                        Gestiona y califica tus servicios
+                    </Text>
+                </View>
 
                 <CustomTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
                 {loading ? (
-                    <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+                    <View style={styles.centerContainer}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                        <Text style={styles.loadingText}>Actualizando bandeja...</Text>
+                    </View>
                 ) : (
                     <FlatList
                         data={filteredRequests}
@@ -134,34 +141,42 @@ export default function RequestsListScreen({ navigation }) {
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.listContent}
                         renderItem={({ item }) => {
-                            // Mapeamos los datos de Supabase a lo que tu componente RequestCard espera
                             const serviceName = item.categories?.name || 'Servicio';
                             const techName = item.technical_profiles?.profiles?.full_name || 'Técnico';
-                            // Ajuste visual: Si está 'completed' marcamos el status para RequestCard
-                            const cardStatus = item.status === 'completed' ? 'completed' : 'active';
+
+                            // Pasamos el estado real (pending, accepted, completed, rejected)
+                            // para que el RequestCard lo pinte con el color correcto.
+                            const actualStatus = item.status;
+
+                            const isAlreadyRated = Array.isArray(item.reviews) ? item.reviews.length > 0 : item.reviews !== null;
 
                             return (
                                 <RequestCard
                                     service={serviceName}
                                     technician={techName}
                                     date={item.suggested_date}
-                                    status={cardStatus}
-                                    isRated={false} // Por ahora en falso, luego podemos cruzarlo con la tabla reviews
+                                    status={actualStatus}
+                                    isRated={isAlreadyRated}
                                     onPress={() => navigation.navigate('RequestStatus', { requestData: item })}
                                     onRatePress={() => handleRatePress({ ...item, technicianName: techName })}
                                 />
                             );
                         }}
                         ListEmptyComponent={
-                            <Text style={styles.emptyText}>
-                                No tienes solicitudes {activeTab === 'active' ? 'en curso' : 'en el historial'}.
-                            </Text>
+                            <View style={styles.emptyContainer}>
+                                <View style={styles.emptyIconCircle}>
+                                    <Ionicons name="clipboard-outline" size={40} color={colors.primary} />
+                                </View>
+                                <Text style={styles.emptyTitle}>Sin solicitudes</Text>
+                                <Text style={styles.emptyText}>
+                                    No tienes servicios {activeTab === 'active' ? 'en curso en este momento' : 'en tu historial'}.
+                                </Text>
+                            </View>
                         }
                     />
                 )}
             </View>
 
-            {/* Modal de Calificación de tu plan de UI */}
             <RatingModal
                 visible={modalVisible}
                 technicianName={selectedRequest?.technicianName || ''}
@@ -175,7 +190,18 @@ export default function RequestsListScreen({ navigation }) {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: colors.background },
     container: { flex: 1, paddingHorizontal: 20, paddingTop: 15 },
-    headerTitle: { fontSize: 24, fontWeight: 'bold', color: colors.textMain },
+
+    headerContainer: { marginBottom: 5 },
+    headerTitle: { fontSize: 28, fontWeight: '900', color: colors.textMain, letterSpacing: -0.5 },
+    headerSubtitle: { fontSize: 15, color: colors.textMuted, marginTop: 4, fontWeight: '500' },
+
     listContent: { paddingBottom: 40 },
-    emptyText: { textAlign: 'center', color: colors.textMuted, marginTop: 40, fontSize: 14 }
+
+    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 60 },
+    loadingText: { marginTop: 15, color: colors.textMuted, fontSize: 15, fontWeight: '500' },
+
+    emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 60, paddingHorizontal: 30 },
+    emptyIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    emptyTitle: { fontSize: 20, fontWeight: 'bold', color: colors.textMain, marginBottom: 8 },
+    emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 15, lineHeight: 22 }
 });
