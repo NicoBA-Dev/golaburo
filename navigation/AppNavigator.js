@@ -8,7 +8,10 @@ import BienvenidaScreen from '../screens/BienvenidaScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import MainTabNavigator from './MainTabNavigator';
-import TecnicoTabNavigator from './TecnicoTabNavigator'; // Importamos el tab del técnico de Leonardo
+import TecnicoTabNavigator from './TecnicoTabNavigator';
+
+// Pantalla de edición traída desde /tecnico/
+import EditPerfilTecnicoScreen from '../screens/tecnico/EditPerfilTecnicoScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -70,11 +73,18 @@ export default function AppNavigator() {
             {/* Flujo de Cliente */}
             <Stack.Screen name="Main" component={MainTabNavigator} />
 
-            {/* Flujo de Técnico con su barra inferior de 3 íconos (De Leonardo) */}
+            {/* Flujo de Técnico */}
             <Stack.Screen
               name="TecnicoPanel"
               component={TecnicoTabNavigator}
               options={{ animation: 'slide_from_bottom' }}
+            />
+
+            {/* Pantalla de Edición del Técnico desde la carpeta /tecnico/ */}
+            <Stack.Screen
+              name="EditPerfilTecnico"
+              component={EditPerfilTecnicoScreen}
+              options={{ animation: 'slide_from_right' }}
             />
           </Stack.Group>
         ) : (

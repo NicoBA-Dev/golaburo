@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 
@@ -9,8 +9,6 @@ import { categoryService } from '../../services/categoryService';
 import { profileService } from '../../services/profileService';
 import { authService } from '../../services/authService';
 
-// Diccionario para adaptar los íconos genéricos de la BD a Ionicons 
-// y rellenar las descripciones nulas con textos atractivos.
 const CATEGORY_META = {
     'Plomería': { icon: 'water-outline', desc: 'Fugas, grifería, tuberías' },
     'Electricidad': { icon: 'flash-outline', desc: 'Cortocircuitos, cableado' },
@@ -22,24 +20,28 @@ const CATEGORY_META = {
 export default function HomeScreen({ navigation }) {
     const [categories, setCategories] = useState([]);
     const [userName, setUserName] = useState('Usuario');
+    const [avatarUrl, setAvatarUrl] = useState(null); // <-- Nuevo estado para la foto
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const loadHomeData = async () => {
             try {
-                // 1. Cargar nombre del usuario para el HomeHeader
                 const session = await authService.getCurrentSession();
                 if (session) {
                     const profile = await profileService.getProfile(session.user.id);
-                    if (profile?.full_name) {
-                        setUserName(profile.full_name);
+                    if (profile) {
+                        if (profile.full_name) {
+                            const primerNombre = profile.full_name.split(' ')[0];
+                            setUserName(primerNombre);
+                        }
+                        // Cargamos la foto desde Supabase
+                        if (profile.avatar_url) {
+                            setAvatarUrl(profile.avatar_url);
+                        }
                     }
                 }
 
-                // 2. Cargar categorías de Supabase
                 const data = await categoryService.getCategories();
-
-                // Mostrar estrictamente las primeras 4 categorías
                 setCategories(data ? data.slice(0, 4) : []);
             } catch (error) {
                 console.error("Error cargando el Home:", error);
@@ -48,19 +50,38 @@ export default function HomeScreen({ navigation }) {
             }
         };
 
+        // Esto recarga la foto automáticamente si el usuario la cambia y vuelve al inicio
         const unsubscribe = navigation?.addListener('focus', loadHomeData);
         return unsubscribe;
     }, [navigation]);
 
+    const goToSearch = (categoryName = 'Todos') => {
+        navigation.navigate('Buscar', {
+            screen: 'Explore',
+            params: { category: categoryName }
+        });
+    };
+
     return (
         <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-                <HomeHeader userName={userName} />
+                {/* Pasamos la foto y la función de navegación al Header */}
+                <HomeHeader
+                    userName={userName}
+                    avatarUrl={avatarUrl}
+                    onProfilePress={() => navigation.navigate('Perfil')}
+                />
+
+                <TouchableOpacity style={styles.fakeSearchBox} activeOpacity={0.9} onPress={() => goToSearch()}>
+                    <Ionicons name="search" size={22} color={colors.textMuted} style={styles.searchIcon} />
+                    <Text style={styles.fakeSearchText}>¿Qué necesitas reparar hoy?</Text>
+                </TouchableOpacity>
 
                 <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>¿Qué servicio necesitas?</Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('Buscar', { screen: 'Explore' })}>
+                    <Text style={styles.sectionTitle}>Servicios Destacados</Text>
+                    <TouchableOpacity onPress={() => goToSearch()}>
                         <Text style={styles.seeAllText}>Ver todos</Text>
                     </TouchableOpacity>
                 </View>
@@ -77,28 +98,31 @@ export default function HomeScreen({ navigation }) {
                                     title={cat.name}
                                     description={meta.desc}
                                     iconName={meta.icon}
-                                    onPress={() => navigation.navigate('Buscar', { screen: 'Explore', params: { category: cat.name } })}
+                                    onPress={() => goToSearch(cat.name)}
                                 />
                             );
                         })}
                     </View>
                 )}
 
-                <TouchableOpacity style={styles.specialBanner} activeOpacity={0.8}>
+                <TouchableOpacity style={styles.specialBanner} activeOpacity={0.8} onPress={() => goToSearch('Reparación de electrodomésticos')}>
                     <View style={styles.specialIconBg}>
                         <Ionicons name="hardware-chip-outline" size={32} color={colors.primary} />
                     </View>
                     <View style={styles.bannerTextContainer}>
                         <Text style={styles.bannerTitle}>Reparación de equipos</Text>
-                        <Text style={styles.bannerDesc}>Lavadoras, cocinas y microondas en Sarco, Tiquipaya y Cercado.</Text>
+                        <Text style={styles.bannerDesc}>Lavadoras, cocinas y microondas. Técnicos disponibles ahora.</Text>
                     </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
                 </TouchableOpacity>
 
                 <View style={styles.trustBadge}>
-                    <Ionicons name="shield-checkmark" size={36} color={colors.surface} />
+                    <View style={styles.trustIconContainer}>
+                        <Ionicons name="shield-checkmark" size={32} color={colors.primary} />
+                    </View>
                     <View style={styles.trustTextContainer}>
-                        <Text style={styles.trustTitle}>Técnicos 100% Verificados</Text>
-                        <Text style={styles.trustDesc}>Revisamos antecedentes y certificaciones en Bolivia.</Text>
+                        <Text style={styles.trustTitle}>Profesionales Verificados</Text>
+                        <Text style={styles.trustDesc}>Revisamos identidad, antecedentes y experiencia en Bolivia.</Text>
                     </View>
                 </View>
 
@@ -110,18 +134,22 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: colors.background },
     scroll: { padding: 20, paddingBottom: 40 },
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginTop: 10 },
-    sectionTitle: { fontSize: 20, fontWeight: 'bold', color: colors.textMain },
-    seeAllText: { fontSize: 14, fontWeight: '600', color: colors.primary },
+    fakeSearchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, height: 54, borderRadius: 16, paddingHorizontal: 15, marginTop: 15, marginBottom: 25, borderWidth: 1, borderColor: colors.border, elevation: 4, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
+    searchIcon: { marginRight: 12 },
+    fakeSearchText: { fontSize: 15, color: colors.textMuted, fontWeight: '500' },
+    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+    sectionTitle: { fontSize: 20, fontWeight: '900', color: colors.textMain, letterSpacing: -0.5 },
+    seeAllText: { fontSize: 14, fontWeight: 'bold', color: colors.primary },
     loader: { marginVertical: 40 },
-    gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 10 },
-    specialBanner: { backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: colors.border, marginBottom: 20, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-    specialIconBg: { backgroundColor: colors.primarySoft, padding: 12, borderRadius: 14, marginRight: 15 },
-    bannerTextContainer: { flex: 1 },
+    gridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 15 },
+    specialBanner: { backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 20, borderWidth: 1, borderColor: colors.border, marginBottom: 20, elevation: 3, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 8 },
+    specialIconBg: { backgroundColor: colors.primarySoft, padding: 12, borderRadius: 16, marginRight: 15 },
+    bannerTextContainer: { flex: 1, paddingRight: 10 },
     bannerTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textMain, marginBottom: 4 },
     bannerDesc: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
-    trustBadge: { backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 20 },
+    trustBadge: { backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: colors.border },
+    trustIconContainer: { backgroundColor: colors.primarySoft, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
     trustTextContainer: { flex: 1, marginLeft: 15 },
-    trustTitle: { fontSize: 16, fontWeight: 'bold', color: colors.surface, marginBottom: 4 },
-    trustDesc: { fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 18 },
+    trustTitle: { fontSize: 15, fontWeight: 'bold', color: colors.textMain, marginBottom: 4 },
+    trustDesc: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
 });

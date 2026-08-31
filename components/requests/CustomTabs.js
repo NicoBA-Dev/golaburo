@@ -31,32 +31,33 @@ export default function CustomTabs({ activeTab, onTabChange }) {
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        backgroundColor: colors.disabledBg, // Fondo gris claro del theme
-        borderRadius: 12,
-        padding: 4,
+        backgroundColor: 'rgba(0,0,0,0.04)', // Fondo gris muy sutil y elegante
+        borderRadius: 16,
+        padding: 6,
         marginVertical: 20,
     },
     tab: {
         flex: 1,
-        paddingVertical: 10,
+        paddingVertical: 12,
         alignItems: 'center',
-        borderRadius: 8,
+        borderRadius: 12,
     },
     activeTab: {
-        backgroundColor: colors.surface, // Blanco puro
+        backgroundColor: colors.surface,
         shadowColor: colors.shadow,
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowRadius: 6,
+        elevation: 3, // Sombra para Android
     },
     tabText: {
         fontSize: 14,
-        fontWeight: '500',
+        fontWeight: '600',
         color: colors.textMuted,
     },
     activeTabText: {
-        color: colors.textMain,
-        fontWeight: 'bold',
+        color: colors.primary, // Texto del color principal al estar activo
+        fontWeight: '900',
+        letterSpacing: 0.3,
     },
 });

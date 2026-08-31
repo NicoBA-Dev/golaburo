@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 
 export default function TechnicianCard({
-    name, rating, reviews, description, zones, price, verified,
+    name, avatarUrl, rating, reviews, description, zones, price, verified,
     onProfilePress, onRequestPress
 }) {
     return (
@@ -12,19 +12,23 @@ export default function TechnicianCard({
 
             {/* Cuerpo de la tarjeta (Tocar aquí va al Perfil) */}
             <TouchableOpacity activeOpacity={0.7} onPress={onProfilePress}>
+
                 {/* Fila Superior: Avatar y Datos Principales */}
                 <View style={styles.headerRow}>
                     <View style={styles.avatarContainer}>
-                        <Ionicons name="person" size={28} color={colors.textMuted} />
+                        {avatarUrl ? (
+                            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                        ) : (
+                            <Ionicons name="person" size={28} color={colors.primarySoft} />
+                        )}
                     </View>
 
                     <View style={styles.infoContainer}>
                         <View style={styles.nameRow}>
                             <Text style={styles.name} numberOfLines={1}>{name}</Text>
                             {verified && (
-                                <View style={styles.badge}>
-                                    <Ionicons name="checkmark-circle" size={12} color={colors.surface} />
-                                    <Text style={styles.badgeText}>Verificado</Text>
+                                <View style={styles.verifiedBadge}>
+                                    <Ionicons name="checkmark" size={10} color={colors.white} />
                                 </View>
                             )}
                         </View>
@@ -43,11 +47,11 @@ export default function TechnicianCard({
 
                     <View style={styles.metaContainer}>
                         <View style={styles.metaItem}>
-                            <Ionicons name="location-outline" size={14} color={colors.textMuted} />
+                            <Ionicons name="location" size={16} color={colors.primary} />
                             <Text style={styles.metaText} numberOfLines={1}>{zones}</Text>
                         </View>
                         <View style={styles.metaItem}>
-                            <Ionicons name="cash-outline" size={14} color={colors.textMuted} />
+                            <Ionicons name="wallet" size={16} color={colors.success} />
                             <Text style={styles.metaText}>Bs. {price} (Tarifa base)</Text>
                         </View>
                     </View>
@@ -57,13 +61,13 @@ export default function TechnicianCard({
             {/* Fila de Acción (Botones independientes) */}
             <View style={styles.actionRow}>
                 <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7} onPress={onProfilePress}>
-                    <Ionicons name="person-outline" size={20} color={colors.textMain} />
-                    <Text style={styles.iconBtnText}>Perfil</Text>
+                    <Ionicons name="person-circle-outline" size={22} color={colors.textMain} />
+                    <Text style={styles.iconBtnText}>Ver perfil</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.8} onPress={onRequestPress}>
-                    <Text style={styles.primaryBtnText}>Solicitar</Text>
-                    <Ionicons name="arrow-forward" size={18} color={colors.surface} style={{ marginLeft: 4 }} />
+                    <Text style={styles.primaryBtnText}>SOLICITAR</Text>
+                    <Ionicons name="arrow-forward" size={18} color={colors.white} style={{ marginLeft: 6 }} />
                 </TouchableOpacity>
             </View>
 
@@ -74,32 +78,37 @@ export default function TechnicianCard({
 const styles = StyleSheet.create({
     card: {
         backgroundColor: colors.surface,
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: 20,
+        padding: 18,
         marginBottom: 16,
         borderWidth: 1,
         borderColor: colors.border,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        elevation: 3,
     },
     headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 14,
     },
     avatarContainer: {
-        width: 50,
-        height: 50,
-        borderRadius: 25, // Lo hacemos circular, es más amigable para avatares
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         backgroundColor: colors.background,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 12,
+        marginRight: 14,
         borderWidth: 1,
         borderColor: colors.border,
+        overflow: 'hidden',
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     },
     infoContainer: {
         flex: 1,
@@ -109,66 +118,64 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 4,
-        flexWrap: 'wrap',
     },
     name: {
         fontSize: 17,
-        fontWeight: 'bold',
+        fontWeight: '900',
         color: colors.textMain,
         marginRight: 6,
+        letterSpacing: -0.3,
     },
-    badge: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    verifiedBadge: {
         backgroundColor: colors.primary,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 12,
-    },
-    badgeText: {
-        color: colors.surface,
-        fontSize: 9,
-        fontWeight: 'bold',
-        marginLeft: 2,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     ratingRow: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     ratingText: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: 'bold',
         color: colors.textMain,
         marginLeft: 4,
         marginRight: 4,
     },
     reviewsText: {
-        fontSize: 12,
+        fontSize: 13,
+        fontWeight: '500',
         color: colors.textMuted,
     },
     detailsContainer: {
-        marginBottom: 12,
+        marginBottom: 14,
     },
     description: {
-        fontSize: 13,
-        color: colors.textMain,
-        marginBottom: 10,
-        lineHeight: 18,
+        fontSize: 14,
+        color: colors.textMuted,
+        marginBottom: 14,
+        lineHeight: 20,
     },
     metaContainer: {
         backgroundColor: colors.background,
-        padding: 10,
-        borderRadius: 8,
-        gap: 6, // Espaciado entre elementos (React Native moderno)
+        padding: 12,
+        borderRadius: 12,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     metaItem: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     metaText: {
-        fontSize: 12,
-        color: colors.textMuted,
-        marginLeft: 6,
+        fontSize: 13,
+        color: colors.textMain,
+        fontWeight: '500',
+        marginLeft: 8,
         flex: 1,
     },
     actionRow: {
@@ -177,31 +184,38 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         borderTopWidth: 1,
         borderTopColor: colors.border,
-        paddingTop: 12,
+        paddingTop: 15,
+        marginTop: 5,
     },
     iconBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 8,
-        paddingHorizontal: 12,
+        paddingHorizontal: 6,
     },
     iconBtnText: {
         fontSize: 14,
-        fontWeight: '600',
+        fontWeight: '700',
         color: colors.textMain,
         marginLeft: 6,
     },
     primaryBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1A1A1A', // Botón de acción oscuro premium
+        backgroundColor: colors.primary,
         paddingVertical: 10,
-        paddingHorizontal: 18,
-        borderRadius: 10,
+        paddingHorizontal: 20,
+        borderRadius: 14,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 3,
     },
     primaryBtnText: {
-        color: colors.surface,
-        fontSize: 14,
-        fontWeight: 'bold',
+        color: colors.white,
+        fontSize: 13,
+        fontWeight: '900',
+        letterSpacing: 0.5,
     },
 });

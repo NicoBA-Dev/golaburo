@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, FlatList, Keyboard, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, FlatList, Keyboard, ActivityIndicator, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
 
@@ -12,23 +12,21 @@ export default function ExploreScreen({ navigation, route }) {
     const [activeCategory, setActiveCategory] = useState('Todos');
     const [isInputFocused, setIsInputFocused] = useState(false);
 
-    // Estados para la data real de Supabase
     const [technicians, setTechnicians] = useState([]);
     const [categories, setCategories] = useState(['Todos']);
     const [loading, setLoading] = useState(true);
 
-    // Capturar si pasamos una categoría desde el HomeScreen
     useEffect(() => {
         if (route.params?.category) {
             setActiveCategory(route.params.category);
         }
     }, [route.params?.category]);
 
-    // Carga de datos iniciales en paralelo
     useEffect(() => {
         const fetchExploreData = async () => {
             setLoading(true);
             try {
+                // Consulta concurrente para mayor velocidad
                 const [techData, catData] = await Promise.all([
                     technicianService.getPublicTechnicians(),
                     categoryService.getCategories()
@@ -48,83 +46,93 @@ export default function ExploreScreen({ navigation, route }) {
         fetchExploreData();
     }, []);
 
-    // Filtrado en tiempo real por categoría y texto escrito
     const getFilteredData = () => {
         let filtered = technicians;
 
+        // 1. Filtro por categoría
         if (activeCategory !== 'Todos') {
             filtered = filtered.filter(item => item.category_name === activeCategory);
         }
 
+        // 2. Búsqueda de texto enriquecida (Nombre, Bio, Categoría y ZONAS DE COBERTURA)
         if (searchQuery.trim() !== '') {
             const query = searchQuery.toLowerCase();
             filtered = filtered.filter(item =>
                 (item.full_name && item.full_name.toLowerCase().includes(query)) ||
                 (item.bio && item.bio.toLowerCase().includes(query)) ||
-                (item.category_name && item.category_name.toLowerCase().includes(query))
+                (item.category_name && item.category_name.toLowerCase().includes(query)) ||
+                (item.coverage_zones && item.coverage_zones.some(zone => zone.toLowerCase().includes(query)))
             );
         }
+
+        // 3. Ordenamos por mejor calificación (avg_rating) de mayor a menor
+        filtered.sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0));
 
         return filtered;
     };
 
     const filteredData = getFilteredData();
 
-    // Cabecera superior que incluye el título, buscador y filtros horizontales
-    const renderHeader = () => (
-        <View style={styles.headerWrapper}>
-            <View style={styles.headerContainer}>
-                <Text style={styles.headerTitle}>Explorar Servicios</Text>
+    return (
+        <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
 
-                <View style={[styles.searchBox, isInputFocused && styles.searchBoxFocused]}>
-                    <Ionicons name="search" size={20} color={isInputFocused ? colors.primary : colors.textMuted} style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Busca plomeros, electricistas..."
-                        placeholderTextColor={colors.placeholder}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        onFocus={() => setIsInputFocused(true)}
-                        onBlur={() => setIsInputFocused(false)}
-                        returnKeyType="search"
+            {/* CABECERA FIJA Y ELEGANTE */}
+            <View style={styles.headerWrapper}>
+                <View style={styles.headerContainer}>
+                    <Text style={styles.headerTitle}>Explorar Servicios</Text>
+
+                    <View style={[styles.searchBox, isInputFocused && styles.searchBoxFocused]}>
+                        <Ionicons name="search" size={20} color={isInputFocused ? colors.primary : colors.textMuted} style={styles.searchIcon} />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Ej. Plomero en Zona Norte..."
+                            placeholderTextColor={colors.placeholder}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            onFocus={() => setIsInputFocused(true)}
+                            onBlur={() => setIsInputFocused(false)}
+                            returnKeyType="search"
+                        />
+                        {searchQuery.length > 0 && (
+                            <TouchableOpacity onPress={() => { setSearchQuery(''); Keyboard.dismiss(); }} style={styles.clearIconBtn}>
+                                <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+
+                {/* Filtros Horizontales (Chips) */}
+                <View style={styles.chipsContainer}>
+                    <FlatList
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        data={categories}
+                        keyExtractor={(item) => item}
+                        contentContainerStyle={styles.chipsContent}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity
+                                style={[styles.chip, activeCategory === item && styles.chipActive]}
+                                onPress={() => {
+                                    setActiveCategory(item);
+                                    Keyboard.dismiss(); // Oculta el teclado si cambia de categoría
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={[styles.chipText, activeCategory === item && styles.chipTextActive]}>
+                                    {item}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                     />
-                    {searchQuery.length > 0 ? (
-                        <TouchableOpacity onPress={() => { setSearchQuery(''); Keyboard.dismiss(); }} style={styles.clearIconBtn}>
-                            <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-                        </TouchableOpacity>
-                    ) : null}
                 </View>
             </View>
 
-            {/* Chips de Categorías Dinámicas */}
-            <FlatList
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                data={categories}
-                keyExtractor={(item) => item}
-                contentContainerStyle={styles.chipsContent}
-                style={styles.chipsScroll}
-                renderItem={({ item }) => (
-                    <TouchableOpacity
-                        style={[styles.chip, activeCategory === item && styles.chipActive]}
-                        onPress={() => setActiveCategory(item)}
-                        activeOpacity={0.7}
-                    >
-                        <Text style={[styles.chipText, activeCategory === item && styles.chipTextActive]}>
-                            {item}
-                        </Text>
-                    </TouchableOpacity>
-                )}
-            />
-        </View>
-    );
-
-    return (
-        <SafeAreaView style={styles.safeArea}>
+            {/* CUERPO DE LA LISTA */}
             {loading ? (
                 <View style={styles.centerContainer}>
                     <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={styles.loadingText}>Buscando profesionales...</Text>
+                    <Text style={styles.loadingText}>Buscando a los mejores profesionales...</Text>
                 </View>
             ) : (
                 <FlatList
@@ -132,20 +140,29 @@ export default function ExploreScreen({ navigation, route }) {
                     keyExtractor={(item) => item.id}
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.listContent}
-                    ListHeaderComponent={renderHeader}
-                    stickyHeaderIndices={[0]}
                     keyboardShouldPersistTaps="handled"
+                    onScroll={() => Keyboard.dismiss()} // Oculta el teclado al scrollear (Mejora UX)
+                    ListHeaderComponent={
+                        <Text style={styles.resultsIndicator}>
+                            Mostrando {filteredData.length} profesional{filteredData.length !== 1 ? 'es' : ''} verificado{filteredData.length !== 1 ? 's' : ''}
+                        </Text>
+                    }
                     renderItem={({ item }) => (
                         <View style={styles.cardWrapper}>
                             <View style={styles.categoryBadgeRow}>
+                                <Ionicons name="shield-checkmark" size={14} color={colors.primary} style={{ marginRight: 4 }} />
                                 <Text style={styles.categoryLabel}>{item.category_name}</Text>
+                                {item.years_experience && (
+                                    <Text style={styles.experienceLabel}> • {item.years_experience} años exp.</Text>
+                                )}
                             </View>
                             <TechnicianCard
                                 name={item.full_name}
+                                avatarUrl={item.avatar_url}
                                 rating={item.avg_rating || 5.0}
                                 reviews={item.ratings_count || 0}
                                 description={item.bio || 'Especialista profesional en servicios generales.'}
-                                zones={item.coverage_zones ? item.coverage_zones.join(', ') : 'Cochabamba y al rededores'}
+                                zones={item.coverage_zones ? item.coverage_zones.join(', ') : 'Zonas no especificadas'}
                                 price={item.base_rate}
                                 verified={item.is_active}
                                 onProfilePress={() => navigation.navigate('TechnicianProfile', { technician: item })}
@@ -156,10 +173,13 @@ export default function ExploreScreen({ navigation, route }) {
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
                             <View style={styles.emptyIconCircle}>
-                                <Ionicons name="search-outline" size={36} color={colors.primary} />
+                                <Ionicons name="search-outline" size={40} color={colors.primary} />
                             </View>
                             <Text style={styles.emptyTitle}>Sin resultados</Text>
-                            <Text style={styles.emptyText}>No encontramos profesionales para "{searchQuery}" en {activeCategory}.</Text>
+                            <Text style={styles.emptyText}>
+                                No encontramos profesionales para "{searchQuery}" en la categoría de {activeCategory}.
+                                Intenta con otras palabras o cambia de categoría.
+                            </Text>
                         </View>
                     }
                 />
@@ -171,64 +191,60 @@ export default function ExploreScreen({ navigation, route }) {
 const styles = StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: colors.background },
 
-    // Header wrapper para mantenerlo flotante/adherente de forma limpia
+    // Header Fijo
     headerWrapper: {
-        backgroundColor: colors.background,
-        paddingBottom: 12,
+        backgroundColor: colors.surface,
+        paddingBottom: 10,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
+        elevation: 4, // Sombra para Android
+        shadowColor: '#000', // Sombra para iOS
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        zIndex: 10,
     },
-    headerContainer: { paddingHorizontal: 20, paddingTop: 14 },
-    headerTitle: { fontSize: 26, fontWeight: 'bold', color: colors.textMain, marginBottom: 14 },
+    headerContainer: { paddingHorizontal: 20, paddingTop: 15 },
+    headerTitle: { fontSize: 28, fontWeight: '900', color: colors.textMain, marginBottom: 15, letterSpacing: -0.5 },
 
-    // Barra de búsqueda moderna
     searchBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: colors.surface,
-        height: 50,
-        borderRadius: 14,
-        paddingHorizontal: 14,
-        marginBottom: 14,
-        borderWidth: 1,
-        borderColor: colors.border,
-        elevation: 2,
-        shadowColor: colors.shadow,
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 3 }
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: colors.background,
+        height: 52, borderRadius: 16, paddingHorizontal: 15, marginBottom: 10,
+        borderWidth: 1, borderColor: colors.border,
     },
-    searchBoxFocused: { borderColor: colors.primary, shadowOpacity: 0.08 },
+    searchBoxFocused: {
+        borderColor: colors.primary,
+        backgroundColor: colors.surface,
+        shadowColor: colors.primary, shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 2
+    },
     searchIcon: { marginRight: 10 },
-    searchInput: { flex: 1, fontSize: 14, color: colors.textMain, fontWeight: '500' },
+    searchInput: { flex: 1, fontSize: 15, color: colors.textMain, fontWeight: '500' },
     clearIconBtn: { padding: 4 },
 
-    // Chips horizontales estilo píldora
-    chipsScroll: { maxHeight: 42, marginTop: 4 },
-    chipsContent: { paddingHorizontal: 20, gap: 8, alignItems: 'center' },
+    chipsContainer: { height: 45, justifyContent: 'center' },
+    chipsContent: { paddingHorizontal: 20, gap: 10, alignItems: 'center' },
     chip: {
-        paddingHorizontal: 16,
-        paddingVertical: 7,
-        borderRadius: 20,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border
+        paddingHorizontal: 18, paddingVertical: 8, borderRadius: 24,
+        backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border,
     },
     chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-    chipText: { fontSize: 13, color: colors.textMuted, fontWeight: '600' },
-    chipTextActive: { color: colors.surface },
+    chipText: { fontSize: 13, color: colors.textMuted, fontWeight: '600', letterSpacing: 0.3 },
+    chipTextActive: { color: colors.surface, fontWeight: 'bold' },
 
-    // Contenido de la lista
-    listContent: { paddingBottom: 40, paddingTop: 10 },
-    cardWrapper: { paddingHorizontal: 20, marginBottom: 4 },
-    categoryBadgeRow: { flexDirection: 'row', marginBottom: 6, marginLeft: 4 },
-    categoryLabel: { fontSize: 11, fontWeight: 'bold', color: colors.primary, textTransform: 'uppercase', letterSpacing: 0.8 },
+    listContent: { paddingBottom: 40, paddingTop: 5 },
+    resultsIndicator: { fontSize: 13, color: colors.textMuted, fontWeight: '600', marginHorizontal: 20, marginVertical: 12 },
 
-    // Estado Vacío y Carga
+    cardWrapper: { paddingHorizontal: 20, marginBottom: 15 },
+    categoryBadgeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, marginLeft: 2 },
+    categoryLabel: { fontSize: 12, fontWeight: 'bold', color: colors.primary, textTransform: 'uppercase', letterSpacing: 0.5 },
+    experienceLabel: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
+
     centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    loadingText: { marginTop: 12, color: colors.textMuted, fontSize: 14, fontWeight: '500' },
-    emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 60, paddingHorizontal: 40 },
-    emptyIconCircle: { width: 70, height: 70, borderRadius: 35, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-    emptyTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textMain, marginBottom: 6 },
-    emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 14, lineHeight: 20 }
+    loadingText: { marginTop: 15, color: colors.textMuted, fontSize: 15, fontWeight: '500' },
+
+    emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 50, paddingHorizontal: 40 },
+    emptyIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+    emptyTitle: { fontSize: 20, fontWeight: 'bold', color: colors.textMain, marginBottom: 8 },
+    emptyText: { textAlign: 'center', color: colors.textMuted, fontSize: 15, lineHeight: 22 }
 });

@@ -1,23 +1,26 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack'; // Añadido para el ProfileStack de Leo
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { fontSize, fontWeight } from '../theme/typography';
 
-// Pantallas principales
+// Pantallas principales y Perfil
 import HomeScreen from '../screens/main/HomeScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
+import EditProfileScreen from '../screens/main/EditProfileScreen';
 import RegistroTecnicoScreen from '../screens/main/RegistroTecnicoScreen';
-import PerfilTecnicoScreen from '../screens/main/PerfilTecnicoScreen';
 
-// NUESTROS STACKS (Los que habíamos armado y Leo borró sin querer)
+// Pantallas de Técnico desde /tecnico/
+import PerfilTecnicoScreen from '../screens/tecnico/PerfilTecnicoScreen';
+import EditPerfilTecnicoScreen from '../screens/tecnico/EditPerfilTecnicoScreen';
+
+// Stacks anidados
 import SearchStackNavigator from './SearchStackNavigator';
 import RequestsStackNavigator from './RequestsStackNavigator';
 
-// 1. Mapa de íconos por pestaña
 const TAB_ICONS = {
     Inicio: { active: 'home', inactive: 'home-outline' },
     Buscar: { active: 'search', inactive: 'search-outline' },
@@ -25,65 +28,20 @@ const TAB_ICONS = {
     Perfil: { active: 'person', inactive: 'person-outline' },
 };
 
-// 2. Pantalla Temporal (Placeholder)
-function PlaceholderScreen({ name, icon }) {
-    return (
-        <View style={placeholderStyles.container}>
-            <View style={placeholderStyles.iconCircle}>
-                <Ionicons name={icon || 'construct-outline'} size={30} color={colors.primary} />
-            </View>
-            <Text style={placeholderStyles.title}>{name}</Text>
-            <Text style={placeholderStyles.subtitle}>Esta sección estará disponible muy pronto.</Text>
-        </View>
-    );
-}
-
-const placeholderStyles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: colors.background,
-        paddingHorizontal: 32,
-    },
-    iconCircle: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        backgroundColor: colors.primarySoft,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-    },
-    title: {
-        fontSize: fontSize.lg,
-        fontWeight: fontWeight.semibold,
-        color: colors.textMain,
-        marginBottom: 6,
-        textAlign: 'center',
-    },
-    subtitle: {
-        fontSize: fontSize.sm,
-        color: colors.textMuted,
-        textAlign: 'center',
-    },
-});
-
-// 3. Stack interno para el flujo del Perfil (DE LEONARDO)
 const ProfileStack = createNativeStackNavigator();
 
 function ProfileStackNavigator() {
     return (
-        <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+        <ProfileStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
             <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
+            <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
             <ProfileStack.Screen name="RegistroTecnicoScreen" component={RegistroTecnicoScreen} />
-
             <ProfileStack.Screen name="PerfilTecnicoScreen" component={PerfilTecnicoScreen} />
+            <ProfileStack.Screen name="EditPerfilTecnico" component={EditPerfilTecnicoScreen} />
         </ProfileStack.Navigator>
     );
 }
 
-// 4. Navegador principal por pestañas (Tab Navigator)
 const Tab = createBottomTabNavigator();
 
 export default function MainTabNavigator() {
@@ -124,7 +82,6 @@ export default function MainTabNavigator() {
         >
             <Tab.Screen name="Inicio" component={HomeScreen} />
 
-            {/* NUESTRO BUSCADOR RESTAURADO */}
             <Tab.Screen
                 name="Buscar"
                 component={SearchStackNavigator}
@@ -136,7 +93,6 @@ export default function MainTabNavigator() {
                 })}
             />
 
-            {/* NUESTRAS SOLICITUDES RESTAURADAS */}
             <Tab.Screen
                 name="Solicitudes"
                 component={RequestsStackNavigator}
@@ -145,7 +101,7 @@ export default function MainTabNavigator() {
                     tabBarBadgeStyle: { backgroundColor: colors.secondary || colors.primary, fontSize: fontSize.xs || 11 },
                 }}
             />
-            {/* Pestaña Perfil usando el Stack de Leonardo */}
+
             <Tab.Screen name="Perfil" component={ProfileStackNavigator} />
         </Tab.Navigator>
     );
