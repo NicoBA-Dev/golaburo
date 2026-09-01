@@ -124,6 +124,23 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
 
+        {/* Favoritos */}
+        <Text style={styles.sectionLabel}>MIS TÉCNICOS</Text>
+        <TouchableOpacity
+          style={styles.favoritesRow}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('Favorites')}
+        >
+          <View style={[styles.iconBox, { backgroundColor: colors.secondarySoft }]}>
+            <Ionicons name="heart" size={20} color={colors.secondary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.infoTitle}>Mis Favoritos</Text>
+            <Text style={styles.infoData}>Técnicos guardados para acceso rápido</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
+
         {/* Panel del Profesional (Protagonista) */}
         <Text style={styles.sectionLabel}>MODO PROFESIONAL</Text>
         <View style={styles.workerSection}>
@@ -198,6 +215,8 @@ const styles = StyleSheet.create({
 
   sectionLabel: { fontSize: 12, fontWeight: 'bold', color: colors.textMuted, marginBottom: 10, marginLeft: 8, letterSpacing: 1 },
   cardSection: { backgroundColor: colors.surface, borderRadius: 20, padding: 18, marginBottom: 25, borderWidth: 1, borderColor: colors.border },
+
+  favoritesRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: 20, padding: 16, marginBottom: 25, borderWidth: 1, borderColor: colors.border, gap: 4 },
 
   infoRow: { flexDirection: 'row', alignItems: 'center' },
   infoTitle: { fontSize: 12, color: colors.textMuted, fontWeight: '600', marginBottom: 2 },

@@ -5,10 +5,27 @@ import { colors } from '../../theme/colors';
 
 export default function TechnicianCard({
     name, avatarUrl, rating, reviews, description, zones, price, verified,
-    onProfilePress, onRequestPress
+    onProfilePress, onRequestPress,
+    isFavorite, onToggleFavorite,
 }) {
     return (
         <View style={styles.card}>
+
+            {/* Botón de Favorito (esquina superior derecha) */}
+            {onToggleFavorite ? (
+                <TouchableOpacity
+                    style={styles.favoriteBtn}
+                    activeOpacity={0.7}
+                    onPress={onToggleFavorite}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    <Ionicons
+                        name={isFavorite ? 'heart' : 'heart-outline'}
+                        size={22}
+                        color={isFavorite ? colors.secondary : colors.textMuted}
+                    />
+                </TouchableOpacity>
+            ) : null}
 
             {/* Cuerpo de la tarjeta (Tocar aquí va al Perfil) */}
             <TouchableOpacity activeOpacity={0.7} onPress={onProfilePress}>
@@ -89,9 +106,17 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 3,
     },
+    favoriteBtn: {
+        position: 'absolute',
+        top: 14,
+        right: 14,
+        zIndex: 1,
+        padding: 4,
+    },
     headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        paddingRight: 30,
         marginBottom: 14,
     },
     avatarContainer: {

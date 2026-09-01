@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, FlatList, Keyboard, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, FlatList, Keyboard, ActivityIndicator, StatusBar, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
 
 import TechnicianCard from '../../../components/services/TechnicianCard';
 import { technicianService } from '../../../services/technicianService';
 import { categoryService } from '../../../services/categoryService';
+import { favoriteService } from '../../../services/favoriteService';
+import { storageService } from '../../../services/storageService';
 
 export default function ExploreScreen({ navigation, route }) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -14,6 +16,7 @@ export default function ExploreScreen({ navigation, route }) {
 
     const [technicians, setTechnicians] = useState([]);
     const [categories, setCategories] = useState(['Todos']);
+    const [favoriteIds, setFavoriteIds] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -23,19 +26,27 @@ export default function ExploreScreen({ navigation, route }) {
     }, [route.params?.category]);
 
     useEffect(() => {
+        // Pinta el corazón activo al instante con el último dato conocido,
+        // mientras Supabase responde (Supabase sigue siendo la fuente de verdad).
+        storageService.getCachedFavoriteIds().then(setFavoriteIds);
+
         const fetchExploreData = async () => {
             setLoading(true);
             try {
                 // Consulta concurrente para mayor velocidad
-                const [techData, catData] = await Promise.all([
+                const [techData, catData, favIds] = await Promise.all([
                     technicianService.getPublicTechnicians(),
-                    categoryService.getCategories()
+                    categoryService.getCategories(),
+                    favoriteService.getFavoriteTechnicianIds(),
                 ]);
 
                 setTechnicians(techData || []);
 
                 const catNames = catData ? catData.map(c => c.name) : [];
                 setCategories(['Todos', ...catNames]);
+
+                setFavoriteIds(favIds);
+                storageService.cacheFavoriteIds(favIds);
             } catch (error) {
                 console.error("Error al cargar el explorador:", error);
             } finally {
@@ -45,6 +56,35 @@ export default function ExploreScreen({ navigation, route }) {
 
         fetchExploreData();
     }, []);
+
+    const handleToggleFavorite = async (technicianId) => {
+        const wasFavorite = favoriteIds.includes(technicianId);
+
+        // Actualización optimista: el corazón responde al instante.
+        setFavoriteIds((prev) =>
+            wasFavorite ? prev.filter((id) => id !== technicianId) : [...prev, technicianId]
+        );
+
+        try {
+            if (wasFavorite) {
+                await favoriteService.removeFavoriteByTechnician(technicianId);
+            } else {
+                await favoriteService.addFavorite(technicianId);
+            }
+            const nextIds = wasFavorite
+                ? favoriteIds.filter((id) => id !== technicianId)
+                : [...favoriteIds, technicianId];
+            storageService.cacheFavoriteIds(nextIds);
+        } catch (error) {
+            // Revertimos si Supabase rechazó el cambio (sin conexión, RLS, etc.)
+            setFavoriteIds((prev) =>
+                wasFavorite ? [...prev, technicianId] : prev.filter((id) => id !== technicianId)
+            );
+            const msg = error.message || 'No se pudo actualizar tus favoritos.';
+            if (Platform.OS === 'web') window.alert(msg);
+            else Alert.alert('Error', msg);
+        }
+    };
 
     const getFilteredData = () => {
         let filtered = technicians;
@@ -167,6 +207,8 @@ export default function ExploreScreen({ navigation, route }) {
                                 verified={item.is_active}
                                 onProfilePress={() => navigation.navigate('TechnicianProfile', { technician: item })}
                                 onRequestPress={() => navigation.navigate('CreateRequest', { technician: item })}
+                                isFavorite={favoriteIds.includes(item.id)}
+                                onToggleFavorite={() => handleToggleFavorite(item.id)}
                             />
                         </View>
                     )}

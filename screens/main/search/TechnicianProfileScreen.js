@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Image, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
 import { supabase } from '../../../config/supabaseConfig';
+import { favoriteService } from '../../../services/favoriteService';
 
 export default function TechnicianProfileScreen({ route, navigation }) {
     // Recibimos los datos del técnico desde la pantalla de resultados
@@ -10,6 +11,8 @@ export default function TechnicianProfileScreen({ route, navigation }) {
 
     const [reviews, setReviews] = useState([]);
     const [loadingReviews, setLoadingReviews] = useState(true);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [favoriteBusy, setFavoriteBusy] = useState(false);
 
     useEffect(() => {
         const fetchReviews = async () => {
@@ -30,8 +33,41 @@ export default function TechnicianProfileScreen({ route, navigation }) {
             }
         };
 
+        const fetchFavoriteStatus = async () => {
+            try {
+                const favIds = await favoriteService.getFavoriteTechnicianIds();
+                setIsFavorite(favIds.includes(technician.id));
+            } catch (error) {
+                console.error("Error consultando favoritos:", error);
+            }
+        };
+
         fetchReviews();
+        fetchFavoriteStatus();
     }, [technician.id]);
+
+    const handleToggleFavorite = async () => {
+        if (favoriteBusy) return;
+        const wasFavorite = isFavorite;
+
+        setFavoriteBusy(true);
+        setIsFavorite(!wasFavorite); // optimista
+
+        try {
+            if (wasFavorite) {
+                await favoriteService.removeFavoriteByTechnician(technician.id);
+            } else {
+                await favoriteService.addFavorite(technician.id);
+            }
+        } catch (error) {
+            setIsFavorite(wasFavorite); // revertimos si falló
+            const msg = error.message || 'No se pudo actualizar tus favoritos.';
+            if (Platform.OS === 'web') window.alert(msg);
+            else Alert.alert('Error', msg);
+        } finally {
+            setFavoriteBusy(false);
+        }
+    };
 
     // Función para renderizar estrellas según el puntaje
     const renderStars = (rating) => {
@@ -56,7 +92,18 @@ export default function TechnicianProfileScreen({ route, navigation }) {
                     <Ionicons name="arrow-back" size={24} color={colors.textMain} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Perfil del Profesional</Text>
-                <View style={{ width: 24 }} />
+                <TouchableOpacity
+                    onPress={handleToggleFavorite}
+                    disabled={favoriteBusy}
+                    style={styles.favoriteHeaderBtn}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    <Ionicons
+                        name={isFavorite ? 'heart' : 'heart-outline'}
+                        size={24}
+                        color={isFavorite ? colors.secondary : colors.textMain}
+                    />
+                </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -152,6 +199,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
     backButton: { padding: 5, marginLeft: -5 },
     headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textMain },
+    favoriteHeaderBtn: { padding: 5, marginRight: -5 },
     scrollContainer: { padding: 20, paddingBottom: 100 },
 
     profileHeader: { alignItems: 'center', marginBottom: 25 },

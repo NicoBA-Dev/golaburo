@@ -12,6 +12,7 @@ import HomeScreen from '../screens/main/HomeScreen';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import EditProfileScreen from '../screens/main/EditProfileScreen';
 import RegistroTecnicoScreen from '../screens/main/RegistroTecnicoScreen';
+import FavoritesScreen from '../screens/main/favorites/FavoritesScreen';
 
 // Pantallas de Técnico desde /tecnico/
 import PerfilTecnicoScreen from '../screens/tecnico/PerfilTecnicoScreen';
@@ -35,6 +36,7 @@ function ProfileStackNavigator() {
         <ProfileStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
             <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} />
             <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
+            <ProfileStack.Screen name="Favorites" component={FavoritesScreen} />
             <ProfileStack.Screen name="RegistroTecnicoScreen" component={RegistroTecnicoScreen} />
             <ProfileStack.Screen name="PerfilTecnicoScreen" component={PerfilTecnicoScreen} />
             <ProfileStack.Screen name="EditPerfilTecnico" component={EditPerfilTecnicoScreen} />
