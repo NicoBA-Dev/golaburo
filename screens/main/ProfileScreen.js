@@ -147,6 +147,7 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.location}>{userData.location}</Text>
         </View>
 
+        {/* SECCIÓN 1: DATOS PERSONALES */}
         <Text style={styles.sectionTitle}>Datos Personales</Text>
         <View style={styles.cardSection}>
           <View style={styles.fieldWrapper}>
@@ -215,6 +216,31 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
 
+        {/* SECCIÓN NUEVA: HERRAMIENTAS Y RECORDATORIOS (EXAMEN) */}
+        <Text style={styles.sectionTitle}>Mis Herramientas</Text>
+        <View style={styles.cardSection}>
+          <TouchableOpacity
+            style={styles.toolRow}
+            activeOpacity={0.7}
+            onPress={() => {
+              const rootNav = navigation.getParent() || navigation;
+              rootNav.navigate('Notes');
+            }}
+          >
+            <View style={styles.toolTextContainer}>
+              <View style={styles.iconBox}>
+                <Ionicons name="clipboard-outline" size={22} color={colors.primary} />
+              </View>
+              <View style={{ marginLeft: 12 }}>
+                <Text style={styles.toolTitle}>Recordatorios del Hogar</Text>
+                <Text style={styles.toolSubtitle}>Gestiona tareas y notas de mantenimiento</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        {/* SECCIÓN 2: PREFERENCIAS LOCALES */}
         <Text style={styles.sectionTitle}>Preferencias de la App</Text>
         <View style={styles.cardSection}>
           <View style={styles.preferenceRow}>
@@ -236,6 +262,7 @@ export default function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* SECCIÓN 3: MODO TÉCNICO */}
         <Text style={styles.sectionTitle}>Modo Trabajador</Text>
         {!userData.isTechnician ? (
           <PrimaryButton
@@ -332,6 +359,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   editIconBtnActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  toolRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
+  toolTextContainer: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  iconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  toolTitle: { fontSize: typography.fontSize.md, fontWeight: typography.fontWeight.bold, color: colors.textMain },
+  toolSubtitle: { fontSize: typography.fontSize.xs, color: colors.textMuted, marginTop: 2 },
   preferenceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
   preferenceTextContainer: { flexDirection: 'row', alignItems: 'center' },
   preferenceText: { fontSize: typography.fontSize.md, color: colors.textMain, marginLeft: 12, fontWeight: typography.fontWeight.medium },
