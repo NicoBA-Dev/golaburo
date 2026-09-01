@@ -7,14 +7,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { fontSize, fontWeight } from '../theme/typography';
 
-// Pantallas del Técnico (PerfilTecnicoScreen movido a /tecnico/)
+// Pantallas del Técnico
 import TecnicoSolicitudesScreen from '../screens/tecnico/TecnicoSolicitudesScreen';
 import TecnicoHistorialScreen from '../screens/tecnico/TecnicoHistorialScreen';
-import PerfilTecnicoScreen from '../screens/tecnico/PerfilTecnicoScreen'; // <-- NUEVA RUTA MOVIDA
+import PerfilTecnicoScreen from '../screens/tecnico/PerfilTecnicoScreen';
+// NUEVA PANTALLA:
+import TecnicoReclamosScreen from '../screens/tecnico/TecnicoReclamosScreen';
 
 const TECH_TAB_ICONS = {
   SolicitudesTab: { active: 'clipboard', inactive: 'clipboard-outline' },
   HistorialTab: { active: 'time', inactive: 'time-outline' },
+  ReclamosTab: { active: 'shield-checkmark', inactive: 'shield-outline' },
   PerfilTecnicoTab: { active: 'person', inactive: 'person-outline' },
 };
 
@@ -59,12 +62,18 @@ export default function TecnicoTabNavigator() {
       <Tab.Screen
         name="SolicitudesTab"
         component={TecnicoSolicitudesScreen}
-        options={{ tabBarLabel: 'Solicitudes' }}
+        options={{ tabBarLabel: 'Nuevos' }}
       />
       <Tab.Screen
         name="HistorialTab"
         component={TecnicoHistorialScreen}
-        options={{ tabBarLabel: 'Historial' }}
+        options={{ tabBarLabel: 'Trabajos' }}
+      />
+      {/* NUEVO TAB DE GARANTÍAS Y RECLAMOS */}
+      <Tab.Screen
+        name="ReclamosTab"
+        component={TecnicoReclamosScreen}
+        options={{ tabBarLabel: 'Garantías' }}
       />
       <Tab.Screen
         name="PerfilTecnicoTab"

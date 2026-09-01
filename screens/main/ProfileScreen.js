@@ -165,7 +165,23 @@ export default function ProfileScreen({ navigation }) {
             <Text style={styles.clearDataText}>Borrar caché local</Text>
           </TouchableOpacity>
         </View>
-
+        {/* NUEVO MÓDULO: Centro de Garantías */}
+        <Text style={styles.sectionLabel}>SOPORTE Y RECLAMOS</Text>
+        <View style={styles.cardSection}>
+          <TouchableOpacity
+            style={styles.preferenceRow}
+            onPress={() => navigation.navigate('Solicitudes', { screen: 'ClaimsList' })} // Navegación cruzada al stack correcto
+            activeOpacity={0.7}
+          >
+            <View style={styles.preferenceTextContainer}>
+              <View style={[styles.iconBox, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={colors.error} />
+              </View>
+              <Text style={styles.preferenceText}>Mis Garantías y Reclamos</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
         {/* Cerrar Sesión */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} disabled={loading} activeOpacity={0.8}>
           {loading ? (
